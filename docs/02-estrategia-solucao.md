@@ -2,11 +2,11 @@
 
 Plano faseado. Cada fase produz um artefato testável e submetível — evitamos ficar meses "pesquisando" sem nada rodando no ladder, porque **o ladder real é o único juiz confiável** (relatos de terceiros indicam que simulações locais nem sempre preveem o desempenho real no ladder).
 
-## Fase 0 — Fundação (bloqueante, ver `06-riscos-questoes-abertas.md`)
-- Criar conta/aceitar regras nas duas competições.
-- Baixar starter kit, engine `cabt`, exemplos oficiais.
-- Validar o contrato técnico descrito em `01-definicao-problema.md` contra a fonte oficial.
-- Rodar o agente de exemplo localmente ponta a ponta (build → eval → "submissão" local) antes de escrever qualquer lógica própria.
+## Fase 0 — Fundação ✅ concluída em 07/08/2026
+- ~~Criar conta/aceitar regras nas duas competições.~~
+- ~~Baixar starter kit, engine, exemplos oficiais.~~
+- ~~Validar o contrato técnico descrito em `01-definicao-problema.md` contra a fonte oficial.~~ Feito via Kaggle API — `sample_submission/`, engine C++ (`ptcg_engine/`) e bases de carta baixados e lidos.
+- **Falta ainda**: ler o texto de `/rules` (não é um arquivo de dados, é a página de regras em si — ver `06-riscos-questoes-abertas.md` item 6) e rodar o agente de exemplo ponta a ponta localmente (próximo passo real de código).
 
 ## Fase 1 — Baseline "burro, mas nunca crasha"
 - Agente **rule-based** trivial: sempre escolhe a primeira ação legal / heurística mínima (ex.: sempre ataca se possível, senão avança o jogo).
@@ -19,7 +19,8 @@ Plano faseado. Cada fase produz um artefato testável e submetível — evitamos
 - Agente evolui de "regra fixa" para **scoring de jogadas**: para cada ação legal, calcular uma heurística (dano esperado, cartas de prêmio, desenvolvimento de board) e escolher a melhor.
 
 ## Fase 3 — Busca / planejamento sob incerteza
-- Avaliar **MCTS** (Monte Carlo Tree Search) com determinização para lidar com informação imperfeita (amostrar mãos plausíveis do oponente), respeitando o limite de tempo por jogada.
+- **Achado importante**: o engine oficial já expõe uma API de busca/lookahead (`search_begin`/`search_step`, ver `01-definicao-problema.md`) que permite simular partidas internamente, incluindo determinização de informação oculta (você informa uma hipótese de mão/deck do oponente e o engine simula a partir daí). Isso significa que MCTS **não exige reimplementar as regras do PTCG** — só a política de seleção de nós e a amostragem de hipóteses do oponente.
+- Avaliar **MCTS** com determinização usando essa API, respeitando o limite de tempo por jogada (a confirmar, ver `06-riscos-questoes-abertas.md` item 5).
 - Comparar contra a Fase 2 em avaliação local antes de gastar submissões.
 - Critério de corte: só sobe pra produção se ganhar consistentemente da heurística pura em partidas locais controladas.
 

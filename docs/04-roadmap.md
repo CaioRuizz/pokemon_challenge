@@ -1,10 +1,10 @@
 # 04 · Roadmap / Cronograma
 
-Data de referência: **07/08/2026**. Datas de deadline conforme `00-visao-geral.md` (⚠️ a reconfirmar oficialmente).
+Data de referência: **07/08/2026**. Deadlines confirmados via Kaggle API (ver `06-riscos-questoes-abertas.md` item 2): Simulation 16/08, Strategy 13/09.
 
 | Data | Marco | Trilha |
 |---|---|---|
-| **07–09/08** | Fase 0: acesso oficial, download do SDK/engine, validação do contrato técnico | ambas |
+| **07/08** ✅ | Fase 0 concluída: acesso oficial via API do Kaggle, engine/dados baixados, contrato técnico validado (`01-definicao-problema.md`) | ambas |
 | **09–11/08** | Fase 1: baseline "nunca crasha" submetido e rodando no ladder | Simulation |
 | **11–14/08** | Fase 2: deckbuilding + agente com scoring, iterar via avaliação local | Simulation |
 | **~14/08** | Checkpoint: decidir se há tempo/ganho para Fase 3 (busca) antes do fechamento do ladder | Simulation |
@@ -24,4 +24,4 @@ A trilha **Simulation fecha primeiro (16/08)** e a trilha **Strategy depende dos
 
 ## Marco imediato (próxima ação real, fora desta etapa de documentação)
 
-> Este documento é só o plano. O primeiro passo de execução é a **Fase 0** em `02-estrategia-solucao.md`: obter acesso oficial ao material da competição. Isso está fora do alcance deste ambiente (exige login/aceite de regras no Kaggle) — ver `06-riscos-questoes-abertas.md`.
+> A Fase 0 está concluída. O próximo passo é começar a **Fase 1** (`02-estrategia-solucao.md`): estrutura de código real (`scripts/fetch_official.sh`, `agent/main.py`, baseline que nunca crasha) e rodar o agente de exemplo localmente ponta a ponta. Isso ainda não foi feito — este documento continua sendo só o plano.

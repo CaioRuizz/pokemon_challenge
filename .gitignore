@@ -1,0 +1,25 @@
+# Material oficial da competição: licença proíbe redistribuição
+# (LicenseRef-PTCG-ABC-Competition-Use-Only — ver docs/06-riscos-questoes-abertas.md, item 3).
+# Reobtido sob demanda via scripts/fetch_official.sh, nunca commitado.
+vendor/
+*.dll
+*.dylib
+libcg*.so
+ptcg_engine/
+sample_submission/
+Card_ID*List*.pdf
+*Card Data.csv
+*Card_Data.csv
+
+# Credenciais da API do Kaggle — nunca commitar
+kaggle.json
+.kaggle/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Saídas de avaliação local (podem ser grandes / regeneráveis)
+eval/reports/

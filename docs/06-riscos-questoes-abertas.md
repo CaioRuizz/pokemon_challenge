@@ -1,34 +1,35 @@
 # 06 · Riscos e Questões Abertas
 
-## 1. Sem acesso oficial aos dados/regras da competição (bloqueante)
+## 1. ~~Sem acesso oficial aos dados/regras da competição~~ — RESOLVIDO em 07/08/2026
 
-As páginas do Kaggle (`/overview`, `/data`, `/rules`) são renderizadas via JavaScript (SPA) e exigem login + aceite das regras para baixar dataset/engine/starter notebook. Este ambiente não tem essas credenciais.
+Após o usuário aceitar as regras das duas competições e fornecer um token da API do Kaggle, baixamos os arquivos oficiais de `pokemon-tcg-ai-battle` via `kaggle competitions download`: o `sample_submission/` completo (`main.py`, `deck.csv`, `cg/` com o engine nativo), o source C++ do engine (`ptcg_engine/`) e as bases de cartas (`EN/JP Card Data.csv`). `01-definicao-problema.md` foi reescrito com esses dados reais.
 
-**O que isso significa na prática**: todo o conteúdo de `01-definicao-problema.md` (contrato do agente, formato de submissão, schema de observação/ação) é **inferido de repositórios de terceiros que já competem**, não da fonte oficial. Pode estar desatualizado, incompleto ou simplesmente errado em detalhes.
+**Ainda falta ler**: a aba `/rules` da competição em si (texto jurídico/regras de scoring), que não vem nos arquivos de dados — ver item 6 abaixo.
 
-**Ação necessária (fora do escopo deste ambiente)**: alguém com acesso precisa:
-- Entrar nas duas competições e aceitar as regras.
-- Baixar o starter notebook oficial e o SDK/engine `cabt`.
-- Colar/anexar o conteúdo relevante (ou rodar este repo em um ambiente com acesso ao Kaggle) para validarmos `01-definicao-problema.md`.
+**Nota operacional**: as credenciais da API do Kaggle usadas para isso ficaram salvas em `~/.kaggle/` neste container remoto (efêmero). Se este ambiente for reaproveitado por outra tarefa, considere revogar/regerar o token nas configurações do Kaggle.
 
-## 2. Datas de deadline não confirmadas na fonte primária
+## 2. ~~Datas de deadline não confirmadas~~ — RESOLVIDO
 
-As datas em `00-visao-geral.md` e `04-roadmap.md` vêm de matérias de imprensa (PokeBeach, Dexerto, TalkEsport, etc.) que **divergem ligeiramente entre si** (ex.: 09/08 vs 16/08 para o fim da trilha Simulation em fontes diferentes). Antes de qualquer decisão crítica de cronograma, confirmar a aba "Timeline" oficial de cada competição no Kaggle.
+Confirmado via `kaggle competitions list` (dado estruturado da própria API, não imprensa): Simulation encerra **16/08/2026 23:59**, Strategy encerra **13/09/2026 23:59**, prêmio Strategy = **US$ 240.000**. Bate com a estimativa mais conservadora que já estava no roadmap.
 
-## 3. Licenciamento de assets
+## 3. Licenciamento de assets — RESOLVIDO (regra confirmada, ação pendente)
 
-Cartas, textos, arte e o próprio engine `cabt` são propriedade da The Pokémon Company. Precisamos confirmar os termos de uso antes de:
-- Versionar (`git add`) qualquer asset baixado do Kaggle neste repositório.
-- Publicar o repositório publicamente, se for o caso.
+Confirmado: o engine (`ptcg_engine/`, `cg/`) tem licença **`LicenseRef-PTCG-ABC-Competition-Use-Only`** — uso restrito à competição, proibida redistribuição/publicação, apagar ao final. Isso vale também para os dados de carta em PDF/CSV oficiais (mesmo pacote, mesma licença implícita de "Pokémon Elements").
 
-## 4. Ambiguidade nas fontes técnicas de terceiros
+**Regra prática para este repo** (já refletida em `03-arquitetura.md`): nunca dar `git add` em nada baixado de dentro de `sample_submission/`, `ptcg_engine/`, `*.pdf`, `*Card Data.csv`. Esses arquivos ficam só localmente (`vendor/`, gitignorado) e são recriados via `scripts/fetch_official.sh` sempre que necessário. Só código nosso (política, harness de avaliação, deck escolhido) é versionado.
 
-Repositórios de terceiros usados como referência (ver `07-referencias.md`) descrevem o sistema de rating de formas diferentes (um menciona "Elo", outro menciona "TrueSkill / μ, σ"). Isso não afeta a estratégia de alto nível, mas afeta como interpretamos "rating" nas nossas próprias avaliações — precisa ser confirmado.
+## 4. Sistema de rating do ladder — ainda não confirmado
 
-## 5. Risco de cronograma
+Os arquivos técnicos baixados (engine, `cg/api.py`) não descrevem como o ladder pontua as partidas (Elo puro? TrueSkill μ/σ?). Fontes de terceiros divergem entre si nesse ponto. Precisa vir do `/rules` ou da aba de leaderboard/discussão oficial — não é bloqueante para começar a codar (o agente não decide baseado nisso), mas afeta como lemos nosso próprio progresso no ladder.
 
-A trilha Simulation tem uma janela curta a partir de hoje (07/08) até o deadline reportado (~16/08). Se a Fase 0 (acesso oficial) atrasar, todo o roadmap desliza. Mitigação: priorizar a Fase 0 imediatamente e ter a Fase 1 (baseline trivial) pronta o quanto antes, mesmo antes de otimizar qualquer heurística.
+## 5. Limite de tempo por jogada — ainda não confirmado
 
-## 6. Escopo de "vencer" não está definido por nós
+Fontes de terceiros mencionam um limite de tempo por decisão do agente, mas isso não apareceu nos arquivos técnicos lidos até agora (nem em `cg/api.py`, nem no `README.md` do engine). Relevante para decidir o quão "cara" a Fase 3 (busca via `search_begin`/`search_step`) pode ser em produção. Precisa ser confirmado no `/rules` antes de investir tempo em busca profunda.
 
-Não sabemos ainda os critérios exatos de corte para a trilha Strategy (o que faz um relatório competitivo) além de "explicar a lógica do agente". Isso deve ser esclarecido lendo a rubrica oficial (se publicada) assim que houver acesso.
+## 6. Regras oficiais completas (`/rules`) ainda não lidas
+
+Só baixamos **dados** (engine, cartas, sample_submission) via API — o texto de regras em si (`https://www.kaggle.com/competitions/pokemon-tcg-ai-battle/rules`) é uma página só de texto/HTML, não um "arquivo de dados" baixável pela API `competitions files`/`download`. Precisa ser lido manualmente (copiar/colar aqui, ou por outro meio) para confirmar: banlist/regras de deck além do que já vimos nos dataclasses (ex.: 1 ACE SPEC), regras de scoring do ladder (item 4), limite de tempo (item 5), e critérios de avaliação da trilha Strategy (o que faz um relatório competitivo).
+
+## 7. Risco de cronograma
+
+A trilha Simulation fecha em **16/08/2026** (confirmado, item 2) — a partir de hoje (07/08) restam ~9 dias. Com o contrato técnico já validado (item 1), o próximo risco é gastar tempo demais em pesquisa e pouco em ter uma submissão válida rodando cedo. Mitigação: seguir a ordem de fases do `02-estrategia-solucao.md` — baseline "nunca crasha" primeiro, otimização depois.
