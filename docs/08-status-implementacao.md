@@ -118,6 +118,8 @@ Depois do score real da v3 (504.7), tentei uma melhoria de **política** (não d
 
 **Decisão**: revertida antes de gastar uma submissão. Fica como lição registrada: nem toda melhoria "teoricamente correta" generaliza — vale sempre validar localmente contra os 4 adversários antes de submeter, e isolar mudanças compostas quando o resultado agregado é ruim.
 
+**Segunda tentativa, ainda mais conservadora**: extraí do experimento acima só a parte que parecia um bug isolado e de baixo risco — `_SEARCH_ITEM_IDS` reconhecia `Master Ball`/`Fighting Gong` mas não `Energy Search` (1119), o item de busca que o deck Grass realmente usa (herdado de quando o deck era Fighting). Adicioná-lo à lista também **piorou** em todos os 4 matchups (ex.: 65% vs. 80% contra o placeholder). Revertida também. Conclusão prática: a heurística atual está num equilíbrio sensível — ajustes de política, mesmo pequenos e "obviamente corretos" na leitura do código, têm retorno negativo agora. As próximas iterações desta rodada focam em **deck**, onde já há evidência real de ganho (score do ladder saltou de 260.5 para 504.7 ao trocar de tipo).
+
 ## Submissões
 
 | # | Quando | Conteúdo | Status |
