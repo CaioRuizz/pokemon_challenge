@@ -85,6 +85,11 @@ Resultado (30 partidas cada, deck Psychic sempre pilotado pela heurística para 
 
 A heurística vence mais nesse cenário — confirma que a lógica de fraqueza/resistência tem valor real, só não aparecia nos testes espelhados anteriores. Achado colateral: o deck Psychic é estruturalmente muito forte contra o nosso Fighting atual (77–83% de vitórias) — candidato a **próxima investigação de deck** (ex.: `Enamorus` ataca por 30 de dano com **1 única energia colorless**, eficiência que nenhum dos nossos 4 atacantes Fighting iguala).
 
-## Submissão
+## Submissões
 
-`build/submission.tar.gz` foi **submetido no Kaggle** em 11/08/2026 (via `kaggle competitions submit -c pokemon-tcg-ai-battle`), consumindo 1 das 5 cotas diárias — mensagem: "v1: baseline + heuristica (scoring de ataque, weakness/resistance) + deck v2 mono-Fighting". Status inicial: `PENDING` (ladder ainda não processou partidas). Checar com `kaggle competitions submissions -c pokemon-tcg-ai-battle --format json`.
+| # | Quando | Conteúdo | Status |
+|---|---|---|---|
+| v1 (ref 55440245) | 11/08 19:02 | Heurística com scoring de ataque + deck v2, **com o bug do loop de ataque-zero ainda ativo** | ❌ `ERROR` |
+| v2 (ref 55440455) | 11/08 19:16 | Igual à v1, mas com a correção do loop de ataque-zero + uso inteligente de trainers | ⏳ `PENDING` |
+
+A v1 falhou com `SubmissionStatus.ERROR` — a API não expõe o motivo exato via CLI, mas a explicação mais provável, dado o timing, é que o bug do loop (corrigido depois, ver seção acima) fez uma partida real no ladder travar/estourar tempo, e o sistema classificou como erro. A v2 já sai com a correção. Checar status com `kaggle competitions submissions -c pokemon-tcg-ai-battle --format json`.
