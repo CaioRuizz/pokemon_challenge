@@ -46,11 +46,10 @@ def run_match(deck_a, deck_b, choose_a, choose_b, games: int, max_steps: int = 5
 
         steps = 0
         while obs["current"]["result"] == -1 and steps < max_steps:
-            sel = obs["select"]
             your_index = obs["current"]["yourIndex"]
             choose_fn = choose_a if your_index == idx_a else choose_b
             try:
-                choice = choose_fn(sel)
+                choice = choose_fn(obs)
             except Exception:
                 errors += 1
                 choice = []

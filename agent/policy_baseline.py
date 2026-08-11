@@ -9,7 +9,8 @@ _MAIN_SELECT_TYPE = 0
 _MAIN_PRIORITY = [13, 9, 10, 7, 8, 12, 14]
 
 
-def choose(select: dict) -> list[int]:
+def choose(obs: dict) -> list[int]:
+    select = obs["select"]
     options = select["option"]
     min_count = select["minCount"]
     max_count = select["maxCount"]

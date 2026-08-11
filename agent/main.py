@@ -1,7 +1,10 @@
 import os
 
+import policy_baseline
+import policy_heuristic
 from fallback import safe_selection
-from policy_baseline import choose
+
+_POLICIES = [policy_heuristic.choose, policy_baseline.choose]
 
 
 def read_deck_csv() -> list[int]:
@@ -18,8 +21,11 @@ def agent(obs_dict: dict) -> list[int]:
     if select is None:
         return read_deck_csv()
 
-    try:
-        return choose(select)
-    except Exception:
-        options = select.get("option", [])
-        return safe_selection(select.get("minCount", 0), select.get("maxCount", 0), len(options))
+    for choose in _POLICIES:
+        try:
+            return choose(obs_dict)
+        except Exception:
+            continue
+
+    options = select.get("option", [])
+    return safe_selection(select.get("minCount", 0), select.get("maxCount", 0), len(options))
