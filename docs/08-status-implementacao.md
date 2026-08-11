@@ -10,7 +10,7 @@ Atualizado em 07/08/2026. Este documento resume o que já foi **construído e te
 | Agente baseline (nunca crasha) | `agent/main.py`, `agent/fallback.py`, `agent/policy_baseline.py` | ✅ Validado em ~50 partidas locais, 0 erros/seleções ilegais |
 | Política heurística (Fase 2) | `agent/policy_heuristic.py`, `agent/card_data.py` | ✅ Pontua ataques por dano efetivo (fraqueza/resistência) e prioriza nocaute garantido; recua quando o ativo está com HP crítico |
 | Cadeia de fallback em camadas | `agent/main.py` | ✅ `policy_heuristic` → `policy_baseline` → `fallback.safe_selection`, cada camada cobrindo exceção da anterior |
-| Deck real (60 cartas) | `agent/deck.csv` (= `data/decks/fighting_rush_v2.csv`) | ✅ v2: mesmos 4 atacantes, trocou treinadores por busca/draw incondicionais, menos energia |
+| Deck real (60 cartas) | `agent/deck.csv` (= `data/decks/grass_v1.csv`) | ✅ Mono-Grass (Genesect/Pinsir/Celebi/Shaymin) — >50% de winrate contra os 4 adversários de teste (ver seção "Troca de tipo") |
 | Harness de avaliação local | `eval/local_match.py` | ✅ CLI reutilizável, roda políticas/decks diferentes um contra o outro via `cg/game.py` |
 | Empacotamento da submissão | `build/package_submission.sh` → `build/submission.tar.gz` (gitignorado) | ✅ Testado isolado (extraído + `main.agent()` chamado fora do repo) |
 
@@ -84,6 +84,31 @@ Resultado (30 partidas cada, deck Psychic sempre pilotado pela heurística para 
 - Fighting pilotado pelo **baseline**: venceu **17%** (5/30)
 
 A heurística vence mais nesse cenário — confirma que a lógica de fraqueza/resistência tem valor real, só não aparecia nos testes espelhados anteriores. Achado colateral: o deck Psychic é estruturalmente muito forte contra o nosso Fighting atual (77–83% de vitórias) — candidato a **próxima investigação de deck** (ex.: `Enamorus` ataca por 30 de dano com **1 única energia colorless**, eficiência que nenhum dos nossos 4 atacantes Fighting iguala).
+
+## Troca de tipo: de Fighting para Grass (objetivo: ≥50% contra todos os adversários de teste)
+
+Depois de resubmeter a v2, o pedido foi: continuar otimizando o deck até bater **pelo menos 50% de winrate contra todos os adversários testados** antes de submeter de novo. O deck Fighting v2 perdia feio (17–27% de vitórias) contra o deck Psychic — hora de investigar por quê e resolver de vez, não só empurrar mais treinadores.
+
+**Passo 1 — reforçar o Fighting (v3)**: troquei `Lunatone`→`Koraidon` (110 dano/3 energia, o ataque mais forte disponível em Fighting puro) e `Hitmontop`→`Sawk` (30 dano por **1 única energia**, tempo rápido, e elimina de vez o Pokémon com o ataque de 0 dano). Resultado contra o Psychic: só **27%** (7→8 de 30) — praticamente nenhuma melhora.
+
+**Diagnóstico real**: o problema não era eficiência de dano, era o **triângulo de tipos**. `Okidogi`, `Koraidon` e `Sawk` são todos fracos a **Psychic**, e o deck Psychic de teste (`Meloetta`/`Spectrier`) **resiste a Fighting** — um duplo prejuízo estrutural que nenhuma quantidade de "dano por energia" resolve sozinha. Esse padrão (Fighting fraco a Psychic) é sistemático no pool inteiro: quase todo atacante Fighting eficiente tem essa mesma fraqueza.
+
+**Passo 2 — testar Darkness**: `Meloetta`/`Spectrier` são fracos a **Darkness**. Montei `data/decks/darkness_v1.csv` (Seviper 120/3energia, Yveltal 110/3energia + retreat 0 + resiste a Fighting, Absol, Roaring Moon). Resultado contra o Psychic: **77%** — virada completa. Mas contra o próprio Fighting v3: só **37%**, porque `Seviper` é fraco a Fighting. Trocar de tipo só empurrou o mesmo problema estrutural para o próximo matchup (ciclo Fighting→Darkness→Psychic→Fighting clássico do TCG).
+
+**Passo 3 — Grass, o tipo que não colide com nenhum dos dois testes**: nem Fighting nem Psychic aparecem como fraqueza de atacante Grass eficiente neste pool (a fraqueza comum de Grass é **Fire**, que nenhum dos nossos adversários de teste explora). Montei `data/decks/grass_v1.csv`: `Genesect` (110 dano/3 energia: 2 Grass + 1 Colorless), `Pinsir` (100/3: 1 Grass + 2 Colorless), `Celebi` e `Shaymin` (30 dano por 1 única energia cada, `Shaymin` com retreat 0). Mesma estrutura de treinadores da v2 (Master Ball ×1, Energy Search ×4 no lugar do Fighting Gong, Cheren ×4, Urbain ×4, Switch ×4, 27 energia básica).
+
+**Resultado final** (heurística nos dois lados, 25–40 partidas por matchup):
+
+| Adversário | Winrate do Grass |
+|---|---|
+| Placeholder degenerado | **73%** |
+| Psychic (`psychic_v1`) | **60%** |
+| Fighting (`fighting_rush_v3`) | **80%** (confirmado com 40 partidas, uma amostra menor deu 56% antes) |
+| Darkness (`darkness_v1`) | **80%** |
+
+Todos os 4 matchups testados ficam **acima de 50%** — meta atingida. `agent/deck.csv` agora aponta para `grass_v1.csv`. Os decks Fighting v3, Darkness e Psychic continuam no repositório (`data/decks/`) como oponentes de regressão para testes futuros.
+
+**Limitação a registrar com honestidade**: isso prova robustez contra os 4 adversários que *nós* construímos, não contra o meta real do ladder (que não conhecemos — `06-riscos-questoes-abertas.md` item 6). O princípio geral que fica — e vale para decks futuros — é: **verificar a distribuição de fraquezas dos atacantes candidatos contra os principais tipos do pool antes de fechar um deck**, não só a eficiência de dano por energia.
 
 ## Submissões
 
