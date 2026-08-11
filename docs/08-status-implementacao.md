@@ -75,6 +75,16 @@ Investigando a duração anômala de partidas (item anterior desta seção, agor
 
 **Resultado após a correção** (60 partidas espelhadas): **0 travamentos**, duração caiu de médias de 233–365 turnos para **33.7 turnos** (mediana 35, máximo 65). Comparando com o placeholder degenerado pilotado pelo baseline antigo (ainda com o bug): nosso deck com heurística corrigida venceu **100% (20/20)**, contra os ~90% de antes — prova de que a correção tem impacto real. (Um teste com heurística corrigida nos dois lados deu 50/50 contra o mesmo placeholder — não é regressão, é o placeholder *também* parando de se autossabotar quando pilotado pela versão corrigida.)
 
+## Evidência real de vantagem da heurística (matchup assimétrico)
+
+Todos os testes anteriores comparando heurística vs. baseline usavam o **mesmo deck mono-Fighting nos dois lados** — o que nunca aciona a lógica de fraqueza/resistência (mesmo tipo nunca é fraco contra si mesmo). Para medir isso de verdade, montei um segundo deck (`data/decks/psychic_v1.csv`, mono-Psychic: Meloetta, Enamorus, Dedenne, Spectrier) e rodei o Fighting contra ele — matchup onde 2 dos 4 psíquicos têm **resistência a Fighting** e 2 dos nossos 4 lutadores (Okidogi, Hitmontop) têm **fraqueza a Psychic**.
+
+Resultado (30 partidas cada, deck Psychic sempre pilotado pela heurística para isolar a variável):
+- Fighting pilotado pela **heurística**: venceu **23%** (7/30)
+- Fighting pilotado pelo **baseline**: venceu **17%** (5/30)
+
+A heurística vence mais nesse cenário — confirma que a lógica de fraqueza/resistência tem valor real, só não aparecia nos testes espelhados anteriores. Achado colateral: o deck Psychic é estruturalmente muito forte contra o nosso Fighting atual (77–83% de vitórias) — candidato a **próxima investigação de deck** (ex.: `Enamorus` ataca por 30 de dano com **1 única energia colorless**, eficiência que nenhum dos nossos 4 atacantes Fighting iguala).
+
 ## Submissão
 
 `build/submission.tar.gz` foi **submetido no Kaggle** em 11/08/2026 (via `kaggle competitions submit -c pokemon-tcg-ai-battle`), consumindo 1 das 5 cotas diárias — mensagem: "v1: baseline + heuristica (scoring de ataque, weakness/resistance) + deck v2 mono-Fighting". Status inicial: `PENDING` (ladder ainda não processou partidas). Checar com `kaggle competitions submissions -c pokemon-tcg-ai-battle --format json`.
