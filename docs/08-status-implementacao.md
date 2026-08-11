@@ -114,7 +114,8 @@ Todos os 4 matchups testados ficam **acima de 50%** — meta atingida. `agent/de
 
 | # | Quando | Conteúdo | Status |
 |---|---|---|---|
-| v1 (ref 55440245) | 11/08 19:02 | Heurística com scoring de ataque + deck v2, **com o bug do loop de ataque-zero ainda ativo** | ❌ `ERROR` |
-| v2 (ref 55440455) | 11/08 19:16 | Igual à v1, mas com a correção do loop de ataque-zero + uso inteligente de trainers | ⏳ `PENDING` |
+| v1 (ref 55440245) | 11/08 19:02 | Heurística com scoring de ataque + deck v2 Fighting, **com o bug do loop de ataque-zero ainda ativo** | ❌ `ERROR` |
+| v2 (ref 55440455) | 11/08 19:16 | Igual à v1, mas com a correção do loop de ataque-zero + uso inteligente de trainers | ✅ `COMPLETE` — **score público 260.5** |
+| v3 | 11/08 19:4x | Deck mono-Grass (Genesect/Pinsir/Celebi/Shaymin) — ≥50% de winrate local contra os 4 adversários de teste | ⏳ `PENDING` |
 
-A v1 falhou com `SubmissionStatus.ERROR` — a API não expõe o motivo exato via CLI, mas a explicação mais provável, dado o timing, é que o bug do loop (corrigido depois, ver seção acima) fez uma partida real no ladder travar/estourar tempo, e o sistema classificou como erro. A v2 já sai com a correção. Checar status com `kaggle competitions submissions -c pokemon-tcg-ai-battle --format json`.
+A v1 falhou com `SubmissionStatus.ERROR` — a API não expõe o motivo exato via CLI, mas a explicação mais provável, dado o timing, é que o bug do loop (corrigido depois, ver seção acima) fez uma partida real no ladder travar/estourar tempo, e o sistema classificou como erro. A v2 processou com sucesso e confirma a correção: **260.5 é nosso primeiro número real de rating no ladder**, útil como baseline para medir se a troca de deck (v3) realmente melhora no jogo real, não só nos nossos testes locais. Checar status com `kaggle competitions submissions -c pokemon-tcg-ai-battle --format json`.
