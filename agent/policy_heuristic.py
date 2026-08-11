@@ -86,6 +86,11 @@ def _score_option(opt: dict, ctx: _Context) -> tuple[float, float]:
         if attack is None:
             return (_CATEGORY[13], 0)
         damage = _attack_damage(attack, ctx.attacker_card, ctx.defender_card)
+        if damage <= 0:
+            # Ataque sem dano (ex.: efeito de utilidade) não vale mais que
+            # simplesmente anexar energia para um ataque de verdade depois —
+            # senão o bot "ataca" à toa todo turno e nunca acumula energia.
+            return (_CATEGORY[8] - 0.5, damage)
         lethal = ctx.defender_hp is not None and damage >= ctx.defender_hp
         return (_CATEGORY[13] + (0.5 if lethal else 0), damage)
 
