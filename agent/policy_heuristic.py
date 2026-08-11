@@ -5,6 +5,10 @@ from fallback import safe_selection
 
 _MAIN_SELECT_TYPE = 0
 
+# SelectContext (cg/api.py): escolha do Pokémon ativo/banco inicial no setup.
+_SETUP_ACTIVE_CONTEXT = 1
+_SETUP_BENCH_CONTEXT = 2
+
 # OptionType categories for a MAIN selection (cg/api.py). Higher = preferred.
 # ATTACK and PLAY get a dynamic sub-score on top of their category.
 _CATEGORY = {
@@ -78,6 +82,25 @@ def _score_play(opt: dict, ctx: _Context) -> float:
     return _CATEGORY[7]
 
 
+def _score_setup_candidate(opt: dict, hand: list | None) -> float:
+    """Prefere, para o Pokémon ativo/banco inicial, o básico com melhor ataque
+    (dano do golpe mais barato por energia), com HP como desempate leve."""
+    index = opt.get("index")
+    if not hand or index is None or index >= len(hand):
+        return 0
+    card = get_card(hand[index].get("id"))
+    if card is None or not card.attacks:
+        return 0
+    best_efficiency = 0.0
+    for attack_id in card.attacks:
+        attack = get_attack(attack_id)
+        if attack is None:
+            continue
+        n_energy = max(len(attack.energies), 1)
+        best_efficiency = max(best_efficiency, attack.damage / n_energy)
+    return best_efficiency + card.hp * 0.01
+
+
 def _score_option(opt: dict, ctx: _Context) -> tuple[float, float]:
     opt_type = opt.get("type")
 
@@ -110,6 +133,13 @@ def choose(obs: dict) -> list[int]:
     max_count = select["maxCount"]
 
     if select["type"] != _MAIN_SELECT_TYPE:
+        if select.get("context") in (_SETUP_ACTIVE_CONTEXT, _SETUP_BENCH_CONTEXT):
+            current = obs.get("current") or {}
+            players = current.get("players") or []
+            your_index = current.get("yourIndex", 0)
+            hand = players[your_index].get("hand") if your_index < len(players) else None
+            ranked = sorted(range(len(options)), key=lambda i: _score_setup_candidate(options[i], hand), reverse=True)
+            return safe_selection(min_count, max_count, len(options), ranked)
         return safe_selection(min_count, max_count, len(options))
 
     current = obs.get("current") or {}
