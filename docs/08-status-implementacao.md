@@ -110,6 +110,14 @@ Todos os 4 matchups testados ficam **acima de 50%** — meta atingida. `agent/de
 
 **Limitação a registrar com honestidade**: isso prova robustez contra os 4 adversários que *nós* construímos, não contra o meta real do ladder (que não conhecemos — `06-riscos-questoes-abertas.md` item 6). O princípio geral que fica — e vale para decks futuros — é: **verificar a distribuição de fraquezas dos atacantes candidatos contra os principais tipos do pool antes de fechar um deck**, não só a eficiência de dano por energia.
 
+## Experimento de política que falhou (registrado por rigor, não foi submetido)
+
+Depois do score real da v3 (504.7), tentei uma melhoria de **política** (não de deck) generalizável para qualquer adversário: (1) retreat/switch preditivo — calcular o dano máximo que o ativo do oponente já consegue pagar *agora* (energia realmente anexada) contra o nosso ativo, e tratar como perigo mesmo com HP acima de 30% se isso for letal; (2) direcionar `ATTACH` para o Pokémon em campo mais perto de completar seu ataque mais barato, em vez da primeira opção da lista.
+
+**Testado antes de submeter** (política nova vs. antiga pilotando o mesmo deck Grass, contra os 4 adversários, 20 partidas cada): a versão nova **piorou em todos os 4 matchups** (ex.: 60% vs. 80% contra o Fighting v3). Isolando cada mudança separadamente, as duas pioram individualmente — o attach-targeting sozinho caiu para 65%, e o retreat preditivo sozinho caiu para 35% no mesmo teste. Hipótese: o retreat preditivo dispara perigo cedo demais (qualquer ataque teoricamente letal do oponente, mesmo em cenários administráveis) e faz o bot trocar de Pokémon em vez de desenvolver energia, nunca chegando a atacar de verdade — um problema com a mesma assinatura do bug de loop anterior, só que por excesso de cautela em vez de excesso de agressão.
+
+**Decisão**: revertida antes de gastar uma submissão. Fica como lição registrada: nem toda melhoria "teoricamente correta" generaliza — vale sempre validar localmente contra os 4 adversários antes de submeter, e isolar mudanças compostas quando o resultado agregado é ruim.
+
 ## Submissões
 
 | # | Quando | Conteúdo | Status |
