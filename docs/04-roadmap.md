@@ -5,7 +5,8 @@ Data de referência: **07/08/2026**. Deadlines confirmados via Kaggle API (ver `
 | Data | Marco | Trilha |
 |---|---|---|
 | **07/08** ✅ | Fase 0 concluída: acesso oficial via API do Kaggle, engine/dados baixados, contrato técnico validado (`01-definicao-problema.md`) | ambas |
-| **09–11/08** | Fase 1: baseline "nunca crasha" submetido e rodando no ladder | Simulation |
+| **07/08** ✅ | Fase 1 concluída localmente: `agent/main.py` (nunca crasha, validado em ~50 partidas locais), deck real de 60 cartas, harness de avaliação, `submission.tar.gz` empacotado e testado isolado. **Falta**: submeter de fato no Kaggle. | Simulation |
+| **09–11/08** | Fase 2: deckbuilding + agente com scoring, iterar via avaliação local | Simulation |
 | **11–14/08** | Fase 2: deckbuilding + agente com scoring, iterar via avaliação local | Simulation |
 | **~14/08** | Checkpoint: decidir se há tempo/ganho para Fase 3 (busca) antes do fechamento do ladder | Simulation |
 | **14–16/08** | Últimos ajustes, garantir as 2 últimas submissões do dia são as melhores versões | Simulation |

@@ -12,6 +12,7 @@ Este diretório contém **apenas planejamento** (nenhum código ainda). O objeti
 6. [Plano de Avaliação](./05-plano-avaliacao.md) — como testar localmente antes de gastar submissões no Kaggle.
 7. [Riscos e Questões Abertas](./06-riscos-questoes-abertas.md) — **bloqueadores atuais**, começando pela falta de acesso oficial aos dados.
 8. [Referências](./07-referencias.md) — fontes usadas para montar este plano.
+9. [Status da Implementação](./08-status-implementacao.md) — o que já foi construído e testado (Fase 1).
 
 ## Leia primeiro
 

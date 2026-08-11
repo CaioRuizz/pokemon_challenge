@@ -10,6 +10,9 @@ sample_submission/
 Card_ID*List*.pdf
 *Card Data.csv
 *Card_Data.csv
+# submissão empacotada reembute o engine (vendor/cg/) — mesma restrição de licença
+build/submission.tar.gz
+*.tar.gz
 
 # Credenciais da API do Kaggle — nunca commitar
 kaggle.json
