@@ -56,10 +56,19 @@ Testei `policy_heuristic` contra `policy_baseline` pilotando o **mesmo deck** do
 
 A vantagem da heurística deve aparecer em três cenários que este teste não cobre: (1) contra decks de **tipo diferente** (fraqueza/resistência entram em jogo), (2) contra Pokémon com **múltiplos ataques** (trade-off custo/dano), (3) quando o ativo entra em **risco de HP baixo** (lógica de retreat). Sanity check contra o placeholder degenerado confirma que não houve regressão (80% de vitórias, em linha com os 90% do baseline puro). A heurística já é a política ativa por padrão (com o baseline como rede de segurança na cadeia de fallback), então isso não bloqueia nada — só significa que, **para ganhar rating de verdade, o próximo ganho concreto está mais no deck (diversidade de tipo/ataques) do que na política** neste momento.
 
-## Observação de teste: duração de partidas
+## Heurística de uso de trainers (pós-submissão v1)
 
-Em partidas espelhadas (deck vs. ele mesmo), a duração variou de ~5 a ~95 turnos, com pelo menos um caso observado ultrapassando isso — variância normal de um jogo com aleatoriedade (coin flips, draws), não um bug (0 erros de política em todos os testes). Como ainda não confirmamos se há limite de tempo por partida/turno no ladder real (`06-riscos-questoes-abertas.md` item 5), isso fica como ponto de atenção, não bloqueador.
+Depois da primeira submissão, a política passou a olhar **qual carta** está por trás de cada opção `PLAY` (via `hand[opt['index']]['id']`), não só o tipo genérico:
+- `Cheren`/`Urbain` (compra 3) ganham prioridade extra quando a mão está pequena (≤3 cartas).
+- `Master Ball`/`Fighting Gong` (busca) ganham prioridade extra quando o banco tem poucos Pokémon (<3).
+- `Switch` passa a competir com `RETREAT` quando o ativo está em perigo (HP<30%) — faz sentido porque trocar de ativo via Switch é **de graça**, sem pagar o custo de energia do retreat.
 
-## Próximo passo real (fora do escopo até aqui)
+**Resultado honesto**: comparado com a versão anterior (só prioridade por tipo), o resultado em partida espelhada (mesmo deck, 40 partidas) foi **48% a 48%** — sem ganho mensurável. Isso é esperado num matchup espelhado: cada carta acaba sendo jogada de qualquer forma ao longo da partida, e o que muda é só a *ordem*; ganho real de "timing" tende a aparecer mais em `winrate` contra decks/políticas diferentes ou em métricas que não medimos ainda (ex.: turnos até o primeiro nocaute, consistência de mão). Sanity check contra o placeholder confirma ausência de regressão (90%).
 
-`build/submission.tar.gz` está pronto e validado localmente, mas **ainda não foi submetido no Kaggle**. Submeter consome uma das 5 cotas diárias reportadas e expõe o resultado publicamente no ladder — ação que requer confirmação explícita antes de ser executada (ver seção de execução cautelosa nas diretrizes gerais).
+## Observação de teste: duração de partidas (recorrente — vale investigar a seguir)
+
+Em partidas espelhadas (deck vs. ele mesmo), a duração observada variou muito: de ~5 turnos a médias de 233–365 turnos em lotes de 30–50 partidas. Isso se repetiu em **todas** as versões testadas (v1, v2, heurística antiga e nova), então não é regressão de nenhuma mudança específica — parece uma característica estrutural de como o bot joga partidas espelhadas (times parelhos, ninguém comete erro grave, o jogo se arrasta). Ainda não é um bug (0 erros de política em nenhum teste), mas é um risco real: não confirmamos se há limite de tempo por partida no ladder (`06-riscos-questoes-abertas.md` item 5) — se houver, partidas de centenas de turnos podem ser encerradas/perdidas por timeout antes de resolver por jogo. **Candidato natural para a próxima rodada de otimização**: entender a causa raiz (provavelmente falta de forma de "fechar o jogo" — ex. sem Pokémon `ex` para acelerar prêmios, ou a política não prioriza atacar o alvo mais fraco/perto de nocaute) e medir se isso é sintoma do deck ou da política.
+
+## Submissão
+
+`build/submission.tar.gz` foi **submetido no Kaggle** em 11/08/2026 (via `kaggle competitions submit -c pokemon-tcg-ai-battle`), consumindo 1 das 5 cotas diárias — mensagem: "v1: baseline + heuristica (scoring de ataque, weakness/resistance) + deck v2 mono-Fighting". Status inicial: `PENDING` (ladder ainda não processou partidas). Checar com `kaggle competitions submissions -c pokemon-tcg-ai-battle --format json`.
