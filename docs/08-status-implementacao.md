@@ -10,7 +10,7 @@ Atualizado em 07/08/2026. Este documento resume o que já foi **construído e te
 | Agente baseline (nunca crasha) | `agent/main.py`, `agent/fallback.py`, `agent/policy_baseline.py` | ✅ Validado em ~50 partidas locais, 0 erros/seleções ilegais |
 | Política heurística (Fase 2) | `agent/policy_heuristic.py`, `agent/card_data.py` | ✅ Pontua ataques por dano efetivo (fraqueza/resistência) e prioriza nocaute garantido; recua quando o ativo está com HP crítico |
 | Cadeia de fallback em camadas | `agent/main.py` | ✅ `policy_heuristic` → `policy_baseline` → `fallback.safe_selection`, cada camada cobrindo exceção da anterior |
-| Deck real (60 cartas) | `agent/deck.csv` (= `data/decks/fighting_rush_v1.csv`) | ✅ Mono-Fighting, 4 atacantes básicos sem evolução + Switch/Ultra Ball + energia |
+| Deck real (60 cartas) | `agent/deck.csv` (= `data/decks/fighting_rush_v2.csv`) | ✅ v2: mesmos 4 atacantes, trocou treinadores por busca/draw incondicionais, menos energia |
 | Harness de avaliação local | `eval/local_match.py` | ✅ CLI reutilizável, roda políticas/decks diferentes um contra o outro via `cg/game.py` |
 | Empacotamento da submissão | `build/package_submission.sh` → `build/submission.tar.gz` (gitignorado) | ✅ Testado isolado (extraído + `main.agent()` chamado fora do repo) |
 
@@ -31,7 +31,22 @@ Em vez disso, montei um deck **mono-Fighting, só Pokémon básicos (sem evoluç
 - Switch, Ultra Ball (4 cópias cada = 8 treinadores utilitários simples)
 - Basic {F} Energy (36 cópias)
 
-Isso é deliberadamente conservador — o objetivo é ter algo **legal e jogável agora**, não o deck ótimo (isso é Fase 2).
+Isso é deliberadamente conservador — o objetivo é ter algo **legal e jogável agora**, não o deck ótimo.
+
+## Deck v2: otimização
+
+O v1 tinha um problema óbvio: **36 de 60 cartas eram energia** (60%), muito mais que o necessário — a mão fica cheia de energia parada em vez de ameaças/recursos. Fui atrás de treinadores melhores na base real de cartas (`all_card_data()`, filtrando por texto de efeito) e troquei:
+
+- **Ultra Ball → Master Ball** (busca qualquer Pokémon, **sem** custo de descartar 2 cartas como o Ultra Ball exigia — mais seguro para um bot que não pondera esse trade-off).
+- **+ Fighting Gong** ×4 (busca Basic {F} Energy **ou** Pokémon {F} básico — desenhado sob medida para um deck mono-Fighting).
+- **+ Cheren** ×4 e **Urbain** ×4 (ambos "Draw 3 cards.", incondicional — os dois únicos supporters de compra sem pegadinha que encontrei entre os 61 supporters do pool).
+- Energia caiu de 36 para 27.
+
+Composição final: 16 Pokémon (inalterado) + 17 treinadores (Master Ball ×1, Fighting Gong ×4, Cheren ×4, Urbain ×4, Switch ×4) + 27 Basic {F} Energy = 60.
+
+**Pegadinha real encontrada testando contra o engine**: `Master Ball` tem `aceSpec=True` — regra "ACE SPEC: no máximo 1 cópia por deck". Coloquei 4 cópias na primeira tentativa e o `battle_start` retornou `errorType=4` (deck inválido) para os dois lados testados, com `obs=None`. Corrigido para 1 cópia + 3 energias extras. Isso é exatamente o tipo de regra que só aparece testando contra o engine real, não nos dataclasses — vale ficar atento a esse padrão (`aceSpec`) para decks futuros.
+
+**Resultado A/B** (v2 vs. v1, mesma política heurística, 50 partidas): v2 venceu **50% a 46%** (2 empates) — vantagem real mas modesta, não uma virada de jogo. Isso também é honesto de registrar: como a política ainda não sabe usar supporters/items *estrategicamente* (ex.: "comprar quando a mão está vazia, atacar quando não"), boa parte do valor de ter mais consistência no deck ainda não é totalmente explorada pelo bot atual. Sanity check contra o placeholder confirma ausência de regressão (90% de vitórias). `agent/deck.csv` já aponta para o v2.
 
 ## Resultado honesto: heurística vs. baseline no deck atual
 
