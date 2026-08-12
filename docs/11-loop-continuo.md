@@ -36,6 +36,22 @@ Investiguei a API `search_begin`/`search_step` (assinatura completa em `vendor/c
 
 **Achado metodológico adicional**: o matchup Kangaskhan é consistentemente o mais ruidoso de todos os catalogados — mesmo a n=60 (o dobro do padrão usado no resto do projeto), duas execuções idênticas deram 10% e 15%. Registrando isso para não interpretar qualquer resultado futuro isolado desse matchup específico como sinal confiável sem replicação.
 
+## Iteração 3 (12/08) — protótipo de `search_begin`/`search_step`: viabilidade técnica confirmada
+
+**Nota operacional**: o mecanismo de agendamento automático entre iterações (`ScheduleWakeup`) falhou silenciosamente — o container foi reciclado por inatividade antes do despertar disparar (agendado para 04:42 UTC, só percebido às 10:03 UTC quando o usuário perguntou por que o loop tinha parado). Tentativa de trocar por um trigger agendado no servidor (`create_trigger`, mais robusto a reciclagem de container) falhou por permissão bloqueada neste ambiente, mesmo após confirmação do usuário. **Decisão** (a pedido do usuário): sem agendamento automático por ora — o usuário chama para continuar cada iteração (ex.: "continue"), em vez de loop 100% autônomo entre sessões. Registrado para não repetir a suposição de que `ScheduleWakeup` sobrevive a janelas de horas.
+
+**Protótipo**: escrevi dois scripts de teste (`/tmp/.../scratchpad/search_proto.py`, `search_proto2.py`, não commitados — só scratch) chamando `search_begin`/`search_step`/`search_release`/`search_end` a partir de uma partida local real (`grass_v5` vs `real_dwebble_crustle_kangaskhan`), usando uma predição propositalmente ingênua (carta única repetida) para mão/deck do oponente — só para validar a mecânica, não a qualidade da predição.
+
+**Resultado**: funciona de ponta a ponta. `search_begin` sozinho: ~2ms. Uma sequência de 10 passos simulados dentro da busca (`search_step` encadeado): **1.51ms no total** (~0.15ms por passo simulado). **Conclusão**: o custo computacional de rodar buscas de múltiplos turnos, mesmo repetidamente a cada jogada real, é desprezível frente a qualquer limite de tempo plausível (a própria heurística reativa atual já usa ~1-38ms por jogada, então dezenas de rollouts de busca cabem tranquilamente no mesmo orçamento).
+
+**O que falta para um lookahead de verdade (não feito nesta iteração, fica como plano concreto para a próxima)**:
+1. **Predição da informação oculta do oponente** (`opponent_hand`, `opponent_deck`) — é o problema difícil de verdade, não a mecânica da API. Abordagem inicial proposta: amostrar as cartas ocultas a partir da distribuição de cartas do oponente já *reveladas* durante a própria partida (jogadas, descarte, prêmios revelados em knockout) em vez de uma carta fixa — melhor que nada, mas ainda imprecisa cedo na partida (pouca informação revelada ainda).
+2. **Função de avaliação** do estado simulado resultante (ex.: "nosso ativo sobrevive?", "diferencial de prêmios/energia investida") para comparar linhas de jogada alternativas.
+3. **Ponto de integração**: o candidato mais direto continua sendo a decisão de RETREAT (o problema que já falhou 3x com heurística estática — ver iteração 2 acima) — mas agora simulando de fato o próximo turno do oponente (incluindo o que ele *ainda pode jogar da mão*, não só a energia já anexada), que é exatamente a informação que faltava nas 3 tentativas estáticas.
+4. Cuidado de engenharia: `search_release`/`search_end` precisam ser chamados de forma confiável mesmo em caminhos de exceção (o protótipo não testou isso sob carga/erro) para não vazar memória nativa numa partida real de dezenas de turnos com múltiplas chamadas por turno.
+
+**Sem mudança em produção nesta iteração** (só protótipo em scratch, nada commitado no agente).
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
