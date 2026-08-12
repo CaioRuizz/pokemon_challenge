@@ -34,6 +34,11 @@ _LOW_HAND_THRESHOLD = 3
 _LOW_BENCH_THRESHOLD = 3
 
 
+_AREA_ACTIVE = 4  # AreaType.ACTIVE
+_AREA_BENCH = 5  # AreaType.BENCH
+_BENCH_REDIRECT_RATIO = 1.4  # só desvia energia se o banco valer >=1.4x mais que o ativo
+
+
 @dataclass
 class _Context:
     attacker_card: object | None
@@ -42,6 +47,8 @@ class _Context:
     active_hp_ratio: float | None
     hand: list | None
     bench_count: int
+    players: list
+    your_index: int
 
 
 def _active_pokemon(players: list, index: int):
@@ -49,6 +56,19 @@ def _active_pokemon(players: list, index: int):
         return None
     active = players[index].get("active") or []
     return active[0] if active else None
+
+
+def _field_pokemon(players: list, your_index: int, area, index):
+    if area is None or index is None or your_index >= len(players):
+        return None
+    player = players[your_index]
+    if area == _AREA_ACTIVE:
+        active = player.get("active") or []
+        return active[0] if active else None
+    if area == _AREA_BENCH:
+        bench = player.get("bench") or []
+        return bench[index] if index < len(bench) else None
+    return None
 
 
 def _attack_damage(attack, attacker_card, defender_card) -> int:
@@ -59,6 +79,25 @@ def _attack_damage(attack, attacker_card, defender_card) -> int:
         if defender_card.resistance is not None and defender_card.resistance == attacker_card.energyType:
             damage = max(0, damage - _RESISTANCE_PENALTY)
     return damage
+
+
+def _best_ready_or_potential_damage(pokemon: dict, defender_card) -> tuple[bool, int]:
+    """(está pronto para atacar agora?, maior dano potencial do seu melhor ataque)."""
+    card = get_card(pokemon.get("id"))
+    if card is None or not card.attacks:
+        return (False, 0)
+    attached = pokemon.get("energies") or []
+    ready = False
+    best_damage = 0
+    for attack_id in card.attacks:
+        attack = get_attack(attack_id)
+        if attack is None:
+            continue
+        damage = _attack_damage(attack, card, defender_card)
+        best_damage = max(best_damage, damage)
+        if len(attached) >= len(attack.energies):
+            ready = True
+    return (ready, best_damage)
 
 
 def _score_play(opt: dict, ctx: _Context) -> float:
@@ -80,6 +119,33 @@ def _score_play(opt: dict, ctx: _Context) -> float:
         return _CATEGORY[7] + (1.0 if ctx.bench_count < _LOW_BENCH_THRESHOLD else 0.2)
 
     return _CATEGORY[7]
+
+
+def _score_attach(opt: dict, ctx: _Context) -> float:
+    """Normalmente indiferente entre alvos de ATTACH (deixa a ordem natural da
+    lista, que tende a favorecer o ativo). Só desvia para um Pokémon no banco
+    quando o ativo já está pronto para atacar (não precisa mais da energia
+    agora) E o banco tem um atacante com potencial de dano bem maior
+    (>= _BENCH_REDIRECT_RATIO) — evita repetir o problema da tentativa anterior
+    (docs/09), que redirecionava cedo demais e atrapalhava o ativo."""
+    target = _field_pokemon(ctx.players, ctx.your_index, opt.get("inPlayArea"), opt.get("inPlayIndex"))
+    if target is None:
+        return _CATEGORY[8]
+    if opt.get("inPlayArea") != _AREA_BENCH:
+        return _CATEGORY[8]
+
+    your_active = _active_pokemon(ctx.players, ctx.your_index)
+    if your_active is None:
+        return _CATEGORY[8]
+
+    active_ready, active_damage = _best_ready_or_potential_damage(your_active, ctx.defender_card)
+    if not active_ready:
+        return _CATEGORY[8]  # ativo ainda precisa da energia — não desviar
+
+    _, bench_damage = _best_ready_or_potential_damage(target, ctx.defender_card)
+    if active_damage > 0 and bench_damage >= active_damage * _BENCH_REDIRECT_RATIO:
+        return _CATEGORY[8] + 0.9  # topo da categoria ATTACH — prioriza esse alvo
+    return _CATEGORY[8]
 
 
 def _score_setup_candidate(opt: dict, hand: list | None) -> float:
@@ -119,6 +185,9 @@ def _score_option(opt: dict, ctx: _Context) -> tuple[float, float]:
 
     if opt_type == 7:  # PLAY
         return (_score_play(opt, ctx), 0)
+
+    if opt_type == 8:  # ATTACH
+        return (_score_attach(opt, ctx), 0)
 
     if opt_type == 12 and ctx.active_hp_ratio is not None and ctx.active_hp_ratio < _RETREAT_DANGER_HP_RATIO:
         return (_RETREAT_DANGER_CATEGORY, 0)
@@ -162,6 +231,8 @@ def choose(obs: dict) -> list[int]:
         active_hp_ratio=active_hp_ratio,
         hand=your_player.get("hand"),
         bench_count=len(your_player.get("bench") or []),
+        players=players,
+        your_index=your_index,
     )
 
     scored = sorted(
