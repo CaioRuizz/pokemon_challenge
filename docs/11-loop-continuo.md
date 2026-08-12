@@ -70,6 +70,26 @@ Investiguei mais a fundo o travamento da iteração 4 (script `/tmp/.../scratchp
 
 **Decisão**: não vale mais investir tempo nisso nesta rodada do loop. O consumo de tempo já foi alto (2 iterações) sem resolução, e mexer na predição para respeitar o limite de 4 cópias é um trabalho não-trivial por si só, que ainda não garantiria eliminar o problema. **Via de busca nativa fica pausada** — arquivo `agent/search_lookahead.py` permanece no repositório como ponto de partida (não integrado, não usado em produção), mas não vou continuar depurando isso nas próximas iterações a menos que surja uma forma de testar em isolamento (baralhos sintéticos pequenos e 100% conhecidos, sem predição nenhuma) — o que reduziria a superfície do problema o bastante pra valer a pena.
 
+## Iteração 6 (12/08) — remedição de confiança (n=60) do estado atual de produção
+
+Depois de pausar a via de busca, redirecionei o esforço para uma remedição mais confiável: `agent/deck.csv` (= `grass_v5`) + política atual (com a correção de tipo de energia da iteração 1) contra os 9 arquétipos reais, **60 partidas cada** (o dobro do padrão usado nas medições anteriores desta rodada, que oscilaram bastante — ver iterações 1-2).
+
+| Adversário | Uso | Winrate (n=60) |
+|---|---|---|
+| `munkidori_impidimp` | 21.4% | 72% |
+| `abra_kadabra_alakazam` | 16.6% | 70% |
+| `dunsparce_dudunsparce` | 14.8% | 67% |
+| `dwebble_crustle_kangaskhan` | 8.5% | 13% |
+| `cynthias-roselia_gible` | 5.8% | 63% |
+| `grookey_thwackey_applin` | 5.3% | 90% |
+| `ogerpon_chikorita-meganium` | 4.5% | 40% |
+| `dreepy_dragapult` | 3.5% | 85% |
+| `ogerpon_solo` | 2.5% | 8% |
+
+**Winrate ponderado: 62.1%** — número mais confiável que os 59.8%/68.2%/58.9% medidos antes a n=35 (todos dentro da mesma faixa de ruído, agora com um centro mais claro em torno de **60-65%**, não 68%). Não muda a conclusão de fundo (critério de 80% não atingido, famílias Ogerpon e Kangaskhan seguem comprometidas), mas é uma base mais sólida para julgar qualquer mudança futura — qualquer nova promoção deveria mover esse número em pelo menos alguns pontos percentuais além do que ruído de amostra explicaria, dado o que já vimos de variância entre execuções.
+
+**Sem mudança em produção** — só uma remedição, nenhuma alteração de código.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
