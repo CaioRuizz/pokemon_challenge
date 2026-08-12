@@ -182,15 +182,39 @@ def _score_attach(opt: dict, ctx: _Context) -> float:
     return _CATEGORY[8] + type_bonus
 
 
-def _score_setup_candidate(opt: dict, hand: list | None) -> float:
-    """Prefere, para o Pokémon ativo/banco inicial, o básico com melhor ataque
-    (dano do golpe mais barato por energia), com HP como desempate leve."""
+def _score_setup_candidate(opt: dict, hand: list | None, for_active: bool = False) -> float:
+    """Prefere, para o Pokémon do banco inicial, o básico com melhor ataque
+    (dano do golpe mais barato por energia), com HP como desempate leve.
+
+    Para o ATIVO inicial (for_active=True) o critério muda: eficiência de
+    dano-por-energia favorece atacantes caros (ex.: Tapu Bulu, 220 dano por 4
+    energia) mesmo eles sendo os mais lentos para começar a atacar de
+    verdade — ruim como ativo inicial, já que ficamos vários turnos sem
+    conseguir atacar logo no começo do jogo (quando isso mais importa contra
+    adversários rápidos). Para o ativo, prioriza o ataque mais barato (menos
+    energia) que ainda causa dano real, com a eficiência como desempate."""
     index = opt.get("index")
     if not hand or index is None or index >= len(hand):
         return 0
     card = get_card(hand[index].get("id"))
     if card is None or not card.attacks:
         return 0
+
+    if for_active:
+        cheapest_cost = None
+        best_efficiency = 0.0
+        for attack_id in card.attacks:
+            attack = get_attack(attack_id)
+            if attack is None or attack.damage <= 0:
+                continue
+            n_energy = max(len(attack.energies), 1)
+            if cheapest_cost is None or n_energy < cheapest_cost:
+                cheapest_cost = n_energy
+            best_efficiency = max(best_efficiency, attack.damage / n_energy)
+        if cheapest_cost is None:
+            return card.hp * 0.01
+        return -cheapest_cost * 100 + best_efficiency + card.hp * 0.01
+
     best_efficiency = 0.0
     for attack_id in card.attacks:
         attack = get_attack(attack_id)
@@ -241,7 +265,12 @@ def choose(obs: dict) -> list[int]:
             players = current.get("players") or []
             your_index = current.get("yourIndex", 0)
             hand = players[your_index].get("hand") if your_index < len(players) else None
-            ranked = sorted(range(len(options)), key=lambda i: _score_setup_candidate(options[i], hand), reverse=True)
+            for_active = select.get("context") == _SETUP_ACTIVE_CONTEXT
+            ranked = sorted(
+                range(len(options)),
+                key=lambda i: _score_setup_candidate(options[i], hand, for_active),
+                reverse=True,
+            )
             return safe_selection(min_count, max_count, len(options), ranked)
         return safe_selection(min_count, max_count, len(options))
 

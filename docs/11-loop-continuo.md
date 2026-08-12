@@ -173,6 +173,42 @@ O meta muda dia a dia (já documentado antes — `docs/09`). Baixei uma amostra 
 
 **Conclusão**: nenhuma mudança de código motivada por este achado — o novo arquétipo relevante (`Lucario`) não é um problema (53%), e o quadro geral de winrate ponderado não mudou o suficiente para alterar a decisão sobre os critérios de `docs/10`. Fica registrado como confirmação de que o meta é dinâmico e vale reconferir periodicamente, não como algo acionável agora.
 
+## Iteração 11 (12/08) — sessão estendida a pedido do usuário ("não vou mandar outro continue hoje, faça o máximo, otimize, garanta que não vai ter erros e submeta ao final")
+
+Varredura final de segurança em todos os 18 adversários catalogados (13 reais + 5 sintéticos), 25 partidas cada: **0 erros de política em todos eles**. Confirma o achado de robustez da iteração 9 (`slowpoke_slowking`: 8/25 empates, ~481 turnos médios — reproduzido de novo, mesmo padrão, mesmo diagnóstico: risco monitorado, sem correção disponível do nosso lado).
+
+**Hand Trimmer** (trocar 4 `Basic Grass Energy` por 4x, id 1087 — disrupção mútua de mão): regressão real no matchup de controle `munkidori_impidimp` (77%→55%, fora de qualquer faixa de ruído já vista para esse arquétipo — nunca tinha ficado abaixo de 63%), sem ganho nos alvos (Kangaskhan 27%, Ogerpon 10%, ambos dentro do ruído já mapeado). Cortar energia de 27→23 parece prejudicar consistência mais do que a disrupção de mão compensa. **Descartado.**
+
+**Recalibração de `_BENCH_REDIRECT_RATIO`** (1.4→1.2): sem sinal fora do ruído já mapeado em nenhum dos dois matchups-alvo. **Descartado**, confirma o achado de `docs/09` de que esse parâmetro específico não é o gargalo.
+
+**Correção de setup: ativo inicial não deve ser o atacante mais caro** — achado observacional: rastreando 20 partidas, `Tapu Bulu` (nosso atacante mais forte, mas o mais caro — 4 energia) estava sendo escolhido como **ativo inicial em 35% das partidas** (`_score_setup_candidate` usava a mesma pontuação de "eficiência de dano por energia" tanto para o ativo quanto pro banco — eficiência favorece atacantes caros de dano alto, o que é bom pra um Pokémon que vai *ficar no banco carregando energia*, mas ruim pra quem *começa em jogo e devia atacar logo*). Corrigido: `_score_setup_candidate` agora recebe um parâmetro `for_active`; quando `True`, o custo de energia do ataque mais barato domina a pontuação (`-custo*100`), com eficiência só como desempate — na prática, para o ativo inicial agora só escolhe `Tapu Bulu` quando é o único básico disponível na mão (caiu de 7/20 para 3/20 nas mesmas 20 partidas de checagem). Banco continua com a lógica antiga (eficiência), que faz sentido lá.
+
+**Validação**: nenhum matchup mostrou uma mudança clara e reproduzível fora do ruído já mapeado (inclusive um susto — `munkidori_impidimp` caiu pra 57% numa leitura de n=40, mas replicando a n=60 voltou a 75%, dentro do normal — mais um exemplo do quanto esse harness de teste é ruidoso para mudanças de efeito modesto). **Decisão**: mantida mesmo sem confirmação estatística clara de ganho, porque (a) é estruturalmente correta por princípio (não faz sentido começar o jogo com o atacante mais lento parado no ativo — é o mesmo tipo de raciocínio que já validou a escolha original de `_score_setup_candidate` em `docs/08`), (b) nenhuma leitura, nem a mais alarmante, se sustentou numa repetição com N maior, e (c) é uma mudança de baixo risco/escopo pequeno, ao contrário do Hand Trimmer e do "energy punish" (iteração 8), que tinham mecanismos mais especulativos e sinal misto mesmo após repetição.
+
+### Varredura final consolidada (produção final desta sessão)
+
+| Adversário | Uso (mais recente disponível) | Winrate (última leitura) |
+|---|---|---|
+| `munkidori_impidimp` | 27.0% | 75% (n=60) |
+| `abra_kadabra_alakazam` | 19.1% | 82% (n=40) |
+| `dunsparce_dudunsparce` | 11.8% | 65% (n=40) |
+| `mega-lucario_solrock` | 10.5% | 60% (n=40) |
+| `dwebble_crustle_kangaskhan` | 8.6% | 35% (n=60) |
+| `dreepy_dragapult` | 7.9% | 92% (n=40) |
+| `ogerpon_chikorita-meganium` | ~4-8%* | 33% (n=60) |
+| `ogerpon_solo` | ~2-4%* | 12% (n=60) |
+| `cynthias-roselia_gible` | 5.8%† | 80% (n=40) |
+| `grookey_thwackey_applin`/`_dipplin` | ~1-5%† | 92%/83% |
+| `team-rockets-tarountula` | ~1% | 50% (n=30) |
+
+\* família Ogerpon somada varia entre ~8% (amostra 08-11) e ~11.8% (amostra 08-10) dependendo do dia. † não recapturado na amostra fresca de 08-11 (amostra menor, 76 episódios); usando peso da amostra de 08-10.
+
+**Estimativa de winrate ponderado combinando pesos frescos (08-11) com os antigos onde não recapturados: ~63-67%** — consistente com a faixa (62-70%) observada em todas as medições desta rodada, ainda abaixo da meta de 80% de `docs/10`, sem mudança de conclusão sobre os dois problemas estruturais (famílias Ogerpon e Kangaskhan).
+
+### Decisão de submissão final desta sessão
+
+Nenhuma mudança de **deck** foi promovida nesta sessão estendida (Hand Trimmer e recalibração de ratio descartados). A única mudança de **política** promovida foi a correção do ativo inicial (setup), de baixo risco e sem regressão confirmada em nenhum teste. Empacotado, validado isoladamente, e submetido — ver commit/registro de submissão logo abaixo. Como não há nenhuma mudança de deck em relação à v8 e a mudança de política é pequena/de baixo risco, esta submissão serve principalmente para (a) capturar a correção do setup no ladder real e (b) manter o agente ativo com mais partidas acumuladas — não é esperado um salto grande no score real a partir dela.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
