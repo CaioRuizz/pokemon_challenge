@@ -26,3 +26,16 @@ Se o tempo se esgotar antes de bater todos os critérios acima, o desempate é: 
 5. Só empacotar/submeter quando os critérios acima forem atingidos ou o prazo apertar de verdade (ver critério de desempate).
 
 Cada iteração desta rodada é registrada abaixo, seguindo a convenção do `CLAUDE.md`.
+
+## Status ao final desta rodada (12/08) — ver detalhes completos em `docs/09`
+
+Resumo executivo (log completo, com todos os experimentos, tabelas e números, em `docs/09-meta-real-do-ladder.md`, seções "Fine-tuning avançado"):
+
+- **Regras oficiais lidas por completo** (`docs/06`, itens 4-6 fechados): rating é TrueSkill com μ0=600; limite de tempo por jogada permanece **não documentado** em nenhuma fonte oficial acessível (mitigado com medição própria: latência máx. 38ms, bem abaixo de qualquer limite plausível); prêmio em dinheiro está de fato atrelado à trilha Strategy/Hackathon, não à Simulation em si.
+- **Base de adversários reais expandida**: de 4 para 9 arquétipos, cobrindo 82.9% de uma amostra fresca de 398 decks (199 episódios de 10-11/08), com winrate ponderado pelo uso real como métrica principal.
+- **Achado crítico**: o baseline real (medido contra a amostra nova e mais representativa) é **59.8%**, não os 73.7% medidos na rodada anterior contra uma amostra menor e favorável por acaso.
+- **Deck iterado com rigor**: 4 variantes testadas (`v4`, `v5`, `v6`, `v8`), uma descoberta importante (armadilha das 2 prize cards de Pokémon `ex` — `v4` revertida), uma promovida (`v5`: Celebi→Virizion, 68.2% ponderado, sem regressão em nenhum dos 9 arquétipos reais nem nos 5 sintéticos).
+- **Política**: nenhuma mudança nova de alto risco tentada nesta rodada — o "retreat preditivo" já tinha falhado 2x antes (`docs/08`); decisão consciente de não tentar uma 3ª vez sem uma técnica estruturalmente diferente (busca/lookahead).
+- **Robustez auditada**: `agent/fallback.py` e a cadeia de 3 camadas revisadas, sem bugs encontrados; 0 erros em 700+ partidas locais.
+- **Critérios de "satisfatório" (seção acima)**: 1 (≥80% ponderado) e 2 (nenhum arquétipo ≥10% <30%) **não atingidos**; 3 (robustez) e 4 (margem de prazo) **atingidos**; 5 (score real >700) ainda sem dado novo.
+- **Decisão**: submetida a `v7` (deck `grass_v5` + política já existente) mesmo sem bater 100% dos critérios — é uma melhoria real e validada (+8.4pp ponderado, zero regressão), submissões são baratas (restam 2 hoje), e os dois problemas remanescentes (famílias Ogerpon ~11.8% e Kangaskhan ~10.1% de uso) são estruturais ao pool de cartas Grass + à falta de busca, não corrigíveis por mais uma iteração incremental de heurística. Ficam registrados como o trabalho real da próxima rodada: (a) considerar um deck multi-tipo tech'ado especificamente contra Kangaskhan (fraco a Fighting), ou (b) investir na API nativa `search_begin`/`search_step` para lookahead de verdade.
