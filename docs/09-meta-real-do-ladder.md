@@ -165,7 +165,7 @@ Hipótese inicial: trocar `Celebi` (80 HP, ataque de 30 dano por 1 energia — o
 
 ### Experimento 2 (promovido): Virizion no lugar de Celebi
 
-Refeita a busca filtrando **apenas Pokémon não-`ex`** do pool Grass, básicos (sem linha de evolução, para não perder velocidade de setup). Melhor opção: `Virizion` (120 HP, ataque de 130 dano por 2 energia, custo de retirada 1 — igual ao de Celebi). Testado como `grass_v5.csv` (`Celebi` → `Virizion`, resto idêntico), 35 partidas por adversário real + revalidação contra os 5 decks sintéticos antigos (25 partidas cada, para descartar overfitting à amostra real).
+Refeita a busca filtrando **apenas Pokémon não-`ex`** do pool Grass, básicos (sem linha de evolução, para não perder velocidade de setup). Melhor opção: `Virizion` (120 HP, ataque de 130 dano por 3 energia — 2 Grass + 1 incolor, mesmo custo de `Genesect`/`Pinsir` mas com mais dano —, custo de retirada 1 — igual ao de Celebi). **Correção (12/08, iteração 8 do loop)**: esta seção originalmente descrevia o custo como "2 energia" — erro de leitura da lista de custo (`[1, 1, 0]` tem 3 elementos, não 2). Não afeta nenhum teste já rodado (os decks usam os IDs reais, que o engine sempre interpretou corretamente) — só a descrição em prosa estava errada. Testado como `grass_v5.csv` (`Celebi` → `Virizion`, resto idêntico), 35 partidas por adversário real + revalidação contra os 5 decks sintéticos antigos (25 partidas cada, para descartar overfitting à amostra real).
 
 | Adversário | Uso | Winrate v3 (antes) | Winrate v5 (depois) |
 |---|---|---|---|
@@ -181,7 +181,7 @@ Refeita a busca filtrando **apenas Pokémon não-`ex`** do pool Grass, básicos 
 | Fighting/Darkness/Psychic/Water-evo (sintéticos) | — | 56-76% | 80-92% (todos melhoraram) |
 | Fire (sintético, contra-tipo estrutural) | — | 16% | 20% (ruído, contra-tipo aceito) |
 
-**Winrate ponderado (9 arquétipos reais): 59.8% → 68.2%.** Melhora real e ampla (7 de 9 matchups melhoraram ou empataram), sem nenhuma regressão nos decks sintéticos. **Promovido**: `grass_v5.csv` → `agent/deck.csv` (produção). Ponto negativo que fica em aberto: `ogerpon_solo` piorou (6%→0%) — hipótese não confirmada é que `Celebi` (ataque de 1 energia) dava uma resposta mais rápida contra esse adversário especificamente rápido (13.7 turnos médios, o mais curto de todos os matchups medidos), e `Virizion` (2 energia) perde exatamente esse turno de vantagem onde mais importa.
+**Winrate ponderado (9 arquétipos reais): 59.8% → 68.2%.** Melhora real e ampla (7 de 9 matchups melhoraram ou empataram), sem nenhuma regressão nos decks sintéticos. **Promovido**: `grass_v5.csv` → `agent/deck.csv` (produção). Ponto negativo que fica em aberto: `ogerpon_solo` piorou (6%→0%) — hipótese não confirmada é que `Celebi` (ataque de 1 energia) dava uma resposta mais rápida contra esse adversário especificamente rápido (13.7 turnos médios, o mais curto de todos os matchups medidos), e `Virizion` (3 energia — ver correção acima) perde esse turno de vantagem onde mais importa.
 
 ### Experimentos 3 e 4 (descartados): outras variações do slot Celebi/Pinsir
 
