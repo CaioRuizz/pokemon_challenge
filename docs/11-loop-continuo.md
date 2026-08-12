@@ -1,0 +1,30 @@
+# 11 · Loop contínuo de melhoria (a partir de 12/08/2026)
+
+## Mandato
+
+A partir de 12/08, o usuário pediu para eu continuar em **loop autônomo e auto-pautado**, sem precisar de novos prompts: seguir investigando/melhorando deck, política e robustez; decidir sozinho quando submeter no Kaggle (balanceando ganho validado, risco, cota diária de 5 submissões, e principalmente o horário/prazo restante); e só parar quando a competição Simulation fechar (**16/08/2026 23:59 UTC**) ou o usuário pedir para parar. Este documento registra as iterações desse loop (uma seção por iteração relevante), seguindo a convenção do `CLAUDE.md` de documentar toda mudança e experimento — inclusive os que não funcionaram.
+
+Estado no início do loop: deck `grass_v5.csv` (Celebi→Virizion) em produção, winrate ponderado local de **68.2%** contra os 9 arquétipos reais catalogados em `data/decks/`, submetido como **v7**. Critérios de "satisfatório" (`docs/10`) ainda não batidos: winrate ponderado <80%, e as famílias Ogerpon (~11.8% de uso) e Kangaskhan/Dwebble/Crustle (~10.1%) seguem abaixo de 30% de winrate. Ver `docs/09` e `docs/10` para o histórico completo até aqui.
+
+## Iteração 1 (12/08) — tech Fighting anti-Kangaskhan: negativo, mas revela e corrige bug real na política
+
+**Hipótese**: `Mega Kangaskhan ex` (300 HP, fraco a Fighting) é a peça que trava o matchup `dwebble_crustle_kangaskhan` (23% de winrate no baseline v5). Um atacante Fighting não-`ex` do próprio pool poderia explorar essa fraqueza (2x dano). Melhor candidato encontrado: `Throh` (id 531, 130 HP, 120 dano por só 2 energia — 1 Fighting + 1 incolor, custo de retirada 2).
+
+**Deck testado** (`grass_v9_kangaskhan_tech.csv`, não promovido/removido depois): `grass_v5.csv` com `Pinsir`×4 → `Throh`×4 e 4 `Basic Grass Energy` → 4 `Basic Fighting Energy` (23 grass + 4 fighting).
+
+**Primeira rodada (política sem ajuste), 35 partidas cada arquétipo**: regressão generalizada, e o próprio matchup-alvo piorou (Kangaskhan: 23%→**6%**). Investigando a causa, encontrei um bug real: `_score_attach` (política) nunca olhava **qual carta de energia da mão** estava sendo anexada (`opt["index"]`), só o alvo em campo. Confirmado observando o jogo real que o `ATTACH` expõe uma opção por carta de energia distinta na mão — com energia mono-tipo isso nunca importou, mas com dois tipos em mão a política estava anexando o tipo errado (ex.: Fighting num atacante Grass, ou Grass no `Throh`) sem nenhum critério, na prática ao acaso.
+
+**Correção aplicada** (`agent/policy_heuristic.py`, `_energy_type_match_bonus` + integração em `_score_attach`): prefere a carta de energia da mão cujo tipo bate com o tipo do Pokémon-alvo (ou é `RAINBOW`, que serve para qualquer custo); penaliza levemente o tipo errado. Verificado que é **matematicamente neutro** para um deck mono-tipo (o bônus vira uma constante somada a todas as opções de `ATTACH`, não muda a ordem relativa) — ou seja, correção de baixo risco para a produção atual (`grass_v5`, mono-Grass).
+
+**Segunda rodada (com a correção), 35 partidas**: Kangaskhan voltou a 23% (igual ao v5 sem o tech) — nem melhora nem piora clara. **Achado metodológico importante**: repetindo a MESMA configuração v5-vs-Kangaskhan duas vezes a n=60, os resultados foram **28% e 18%** — uma variação de 10 pontos percentuais só de ruído amostral, mesmo em n=60 (maior que o "padrão" de 30-35 partidas usado nas rodadas anteriores desta sessão). Repetindo o teste do `Throh` a n=60: **20%** — dentro da mesma faixa de ruído do v5 puro (18-28%), ou seja, **estatisticamente indistinguível**, não uma melhora real.
+
+**Conclusão**: o tech de Fighting não resolve o matchup Kangaskhan — mesmo com a energia sendo roteada corretamente, `Throh` tem o mesmo problema estrutural de tudo mais no deck (HP baixo demais para sobreviver ao golpe de 200 de dano do Kangaskhan; e mesmo com 2x de fraqueza, 120×2=240 não mata os 300 HP dele num golpe só). Não promovido, arquivo removido. **Correção do bug de roteamento de energia por tipo, porém, foi mantida** — é estruturalmente correta, neutra na produção atual, e é pré-requisito para qualquer tentativa futura de deck multi-tipo (sem ela, nenhuma tentativa desse tipo pode funcionar, independente de qual carta se escolha).
+
+**Lição metodológica que fica valendo daqui pra frente**: para matchups **fechados/marginais** (perto de empate teórico ou com poucas partidas terminando de forma lopsided), 30-35 partidas não é mais suficiente para decidir com confiança — usar **60 partidas** como padrão em comparações que vão decidir uma promoção, especialmente para o matchup Kangaskhan especificamente, que parece ser inerentemente mais ruidoso que os outros (jogos mais curtos, ~19-23 turnos, com um Pokémon de 300 HP que nocauteia em 1 golpe — o resultado depende muito de quem consegue montar o ataque primeiro, um fator com bastante variância).
+
+**Sem mudança em produção nesta iteração** (o `agent/deck.csv` continua `grass_v5`; a correção de `_score_attach` é um no-op comportamental para esse deck mono-tipo) — nenhuma submissão nova necessária.
+
+## Próximos passos identificados para as próximas iterações do loop
+
+1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
+2. Se a busca não for viável a tempo, considerar aceitar as duas famílias de matchup fracas como teto estrutural do approach atual e redirecionar esforço para robustez/consistência geral (reduzir variância, não só subir a média).

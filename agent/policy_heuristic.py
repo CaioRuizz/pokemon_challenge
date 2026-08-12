@@ -121,31 +121,65 @@ def _score_play(opt: dict, ctx: _Context) -> float:
     return _CATEGORY[7]
 
 
+_ENERGY_TYPE_ANY = 10  # EnergyType.RAINBOW — serve para qualquer custo.
+
+
+def _energy_type_match_bonus(opt: dict, ctx: _Context, target: dict) -> float:
+    """Prefere anexar a carta de energia da mão cujo tipo bate com o que o
+    alvo realmente usa. O ATTACH expõe uma opção por carta de energia na mão
+    (confirmado observando o jogo real), e a versão anterior desta função
+    ignorava isso — irrelevante enquanto o deck era mono-tipo, mas quebra
+    qualquer deck com mais de um tipo de energia (ver docs/09: tentativa de
+    tech Fighting anti-Kangaskhan regrediu de 23% para 6% exatamente por
+    causa disso — energia do tipo errado sendo anexada sem critério)."""
+    hand_index = opt.get("index")
+    if ctx.hand is None or hand_index is None or hand_index >= len(ctx.hand):
+        return 0.0
+    hand_card = get_card(ctx.hand[hand_index].get("id"))
+    if hand_card is None or hand_card.cardType != 5:
+        return 0.0
+    target_card = get_card(target.get("id"))
+    if target_card is None or not target_card.attacks:
+        return 0.0
+    target_type = target_card.energyType
+    if target_type == 0:  # alvo incolor: qualquer tipo de energia serve igual
+        return 0.0
+    energy_type = hand_card.energyType
+    if energy_type == target_type or energy_type == _ENERGY_TYPE_ANY:
+        return 0.4
+    return -0.4
+
+
 def _score_attach(opt: dict, ctx: _Context) -> float:
     """Normalmente indiferente entre alvos de ATTACH (deixa a ordem natural da
     lista, que tende a favorecer o ativo). Só desvia para um Pokémon no banco
     quando o ativo já está pronto para atacar (não precisa mais da energia
     agora) E o banco tem um atacante com potencial de dano bem maior
     (>= _BENCH_REDIRECT_RATIO) — evita repetir o problema da tentativa anterior
-    (docs/09), que redirecionava cedo demais e atrapalhava o ativo."""
+    (docs/09), que redirecionava cedo demais e atrapalhava o ativo. Também
+    prefere, dentre as cartas de energia disponíveis na mão, a que o alvo
+    realmente aproveita (ver _energy_type_match_bonus)."""
     target = _field_pokemon(ctx.players, ctx.your_index, opt.get("inPlayArea"), opt.get("inPlayIndex"))
     if target is None:
         return _CATEGORY[8]
+
+    type_bonus = _energy_type_match_bonus(opt, ctx, target)
+
     if opt.get("inPlayArea") != _AREA_BENCH:
-        return _CATEGORY[8]
+        return _CATEGORY[8] + type_bonus
 
     your_active = _active_pokemon(ctx.players, ctx.your_index)
     if your_active is None:
-        return _CATEGORY[8]
+        return _CATEGORY[8] + type_bonus
 
     active_ready, active_damage = _best_ready_or_potential_damage(your_active, ctx.defender_card)
     if not active_ready:
-        return _CATEGORY[8]  # ativo ainda precisa da energia — não desviar
+        return _CATEGORY[8] + type_bonus  # ativo ainda precisa da energia — não desviar
 
     _, bench_damage = _best_ready_or_potential_damage(target, ctx.defender_card)
     if active_damage > 0 and bench_damage >= active_damage * _BENCH_REDIRECT_RATIO:
-        return _CATEGORY[8] + 0.9  # topo da categoria ATTACH — prioriza esse alvo
-    return _CATEGORY[8]
+        return _CATEGORY[8] + 0.9 + type_bonus  # topo da categoria ATTACH — prioriza esse alvo
+    return _CATEGORY[8] + type_bonus
 
 
 def _score_setup_candidate(opt: dict, hand: list | None) -> float:
