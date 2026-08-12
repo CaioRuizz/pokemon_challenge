@@ -13,6 +13,7 @@ Este diretório contém **apenas planejamento** (nenhum código ainda). O objeti
 7. [Riscos e Questões Abertas](./06-riscos-questoes-abertas.md) — **bloqueadores atuais**, começando pela falta de acesso oficial aos dados.
 8. [Referências](./07-referencias.md) — fontes usadas para montar este plano.
 9. [Status da Implementação](./08-status-implementacao.md) — o que já foi construído e testado (Fase 1).
+10. [Meta Real do Ladder](./09-meta-real-do-ladder.md) — dados de outros agentes (episódios do ladder, tier list da comunidade) e o que fazer com eles.
 
 ## Leia primeiro
 
