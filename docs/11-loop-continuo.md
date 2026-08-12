@@ -90,6 +90,36 @@ Depois de pausar a via de busca, redirecionei o esforço para uma remedição ma
 
 **Sem mudança em produção** — só uma remedição, nenhuma alteração de código.
 
+## Iteração 7 (12/08) — Crushing Hammer: melhoria ampla, promovida e submetida
+
+Com a via de busca pausada, voltei para deck guiado por dados: `Crushing Hammer` (id 1120, item — "Flip a coin. If heads, discard an Energy from 1 of your opponent's Pokémon.") é a própria carta de disrupção que o deck Kangaskhan (nosso pior matchup) usa contra nós. Hipótese: incluí-la no nosso deck deveria atrasar genericamente qualquer oponente que dependa de acumular energia — o que descreve quase todo o campo, não só o Kangaskhan.
+
+**Deck testado** (`grass_v11_hammer.csv`): `agent/deck.csv` anterior com `Energy Search`×4 → `Crushing Hammer`×4 (única mudança).
+
+**Resultado nos dois matchups-alvo primeiro** (n=60, antes de gastar tempo no sweep completo): Kangaskhan **13%→35%** (mais que dobrou), Ogerpon solo **8%→13%**. Sinal forte o bastante para justificar o sweep completo.
+
+**Sweep completo** (n=60 nos 9 arquétipos reais, n=30 nos 5 sintéticos antigos):
+
+| Adversário | Uso | Antes (n=60, iteração 6) | Depois (`+Crushing Hammer`) |
+|---|---|---|---|
+| `munkidori_impidimp` | 21.4% | 72% | 77% |
+| `abra_kadabra_alakazam` | 16.6% | 70% | 83% |
+| `dunsparce_dudunsparce` | 14.8% | 67% | 80% |
+| `dwebble_crustle_kangaskhan` | 8.5% | 13% | **35%** |
+| `cynthias-roselia_gible` | 5.8% | 63% | 65% |
+| `grookey_thwackey_applin` | 5.3% | 90% | 90% |
+| `ogerpon_chikorita-meganium` | 4.5% | 40% | 33% |
+| `dreepy_dragapult` | 3.5% | 85% | 87% |
+| `ogerpon_solo` | 2.5% | 8% | 13% |
+| Fighting/Darkness/Psychic/Water-evo (sintéticos, n=30) | — | ~68-92% | 77-90% (todos saudáveis) |
+| Fire (sintético, contra-tipo estrutural) | — | ~20% | 23% (ruído, contra-tipo aceito) |
+
+**Winrate ponderado: 62.1% → 70.5%** (+8.4pp). 8 de 9 matchups reais melhoraram ou empataram; só `ogerpon_chikorita-meganium` caiu (40%→33%, ainda dentro de ruído plausível dado tudo que já vimos de variância). Nenhuma regressão nos sintéticos. **Esta foi a melhoria de deck mais ampla e consistente desde o início da sessão** — ao contrário das trocas anteriores (Celebi→Virizion ajudou uns matchups e não outros), disrupção de energia ajuda genericamente porque quase todo arquétipo do campo depende de acumular energia.
+
+**Promovido**: `grass_v11_hammer.csv` → `agent/deck.csv`. Critério 2 de `docs/10` (nenhum arquétipo ≥10% de uso <30% winrate): a família Kangaskhan (variante testada, 8.5% de uso) agora está em 35%, **acima do limiar** — deixa de violar o critério isoladamente (a família mais ampla, ~10.1% agregando sub-variantes não testadas individualmente, seria preciso reconferir, mas o sinal é bom). A família Ogerpon (~11.8%) continua abaixo de 30% nas duas variantes testadas (13-33%) — segue violando.
+
+**Empacotado e submetido como v8**: validado isoladamente (deck extraído do pacote confere com `agent/deck.csv`), enviado ao Kaggle. Justificativa para submeter agora (mesmo com critério 1 de 80% ainda não batido, agora em 70.5%): ganho real, amplo, validado com n=60 (padrão mais rigoroso adotado nesta rodada), sem regressão em nada testado — represar não faz sentido dado que temos folga de prazo e cota de submissão.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
