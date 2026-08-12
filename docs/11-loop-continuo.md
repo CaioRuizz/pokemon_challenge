@@ -207,7 +207,9 @@ Varredura final de segurança em todos os 18 adversários catalogados (13 reais 
 
 ### Decisão de submissão final desta sessão
 
-Nenhuma mudança de **deck** foi promovida nesta sessão estendida (Hand Trimmer e recalibração de ratio descartados). A única mudança de **política** promovida foi a correção do ativo inicial (setup), de baixo risco e sem regressão confirmada em nenhum teste. Empacotado, validado isoladamente, e submetido — ver commit/registro de submissão logo abaixo. Como não há nenhuma mudança de deck em relação à v8 e a mudança de política é pequena/de baixo risco, esta submissão serve principalmente para (a) capturar a correção do setup no ladder real e (b) manter o agente ativo com mais partidas acumuladas — não é esperado um salto grande no score real a partir dela.
+Nenhuma mudança de **deck** foi promovida nesta sessão estendida (Hand Trimmer e recalibração de ratio descartados). A única mudança de **política** promovida foi a correção do ativo inicial (setup), de baixo risco e sem regressão confirmada em nenhum teste. Empacotado, validado isoladamente (deck extraído do pacote confere byte-a-byte, `main.agent({'select': None})` retorna as 60 cartas corretas, partida isolada rodada com o código do próprio pacote sem erros), e **submetido como v9** (última submissão disponível hoje — 0 restantes após o envio). Como não há nenhuma mudança de deck em relação à v8 e a mudança de política é pequena/de baixo risco, esta submissão serve principalmente para (a) capturar a correção do setup no ladder real e (b) manter o agente ativo com mais partidas acumuladas — não é esperado um salto grande no score real a partir dela.
+
+**Cota de submissões esgotada por hoje (12/08)** — usuário avisou que não vai mandar mais mensagens hoje. Próxima iteração do loop deve continuar a partir daqui na próxima interação (a cota reseta, historicamente, por volta da virada do dia UTC).
 
 ## Próximos passos identificados para as próximas iterações do loop
 
