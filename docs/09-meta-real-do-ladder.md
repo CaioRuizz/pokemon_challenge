@@ -116,3 +116,83 @@ A pedido do usuário ("faça um loop para otimizar... até conseguir um resultad
 ## Próximo passo real para melhorar o Ogerpon além do que foi feito aqui
 
 Como o gargalo é tempo, não roteamento de energia, os próximos caminhos plausíveis são: (a) um atacante-bomba de custo **menor** que 4 energia (o pool teria que ser vasculhado de novo com esse critério específico — dano alto por HP do oponente, mas custo baixo); (b) usar a API de busca/lookahead do próprio engine (`search_begin`/`search_step`, ver `docs/01-definicao-problema.md`) para prever e reagir à ameaça do Ogerpon com mais antecedência, em vez de heurística reativa; (c) aceitar a fraqueza estrutural e confiar que Ogerpon (12.8% do campo) ainda deixa ~87% do campo em bom formato — o que os números desta sessão já sustentam.
+
+## Fine-tuning avançado (12/08, continuação) — amostra fresca revela baseline pior do que se pensava
+
+Contexto: `docs/10-fine-tuning-avancado.md` define a meta de ≥80% de winrate ponderado antes de qualquer nova submissão. Primeiro passo: revalidar contra uma amostra **maior e mais recente** de decks reais, em vez dos 4 arquétipos antigos (extraídos de uma amostra menor, em datas anteriores).
+
+### Extração fresca (199 episódios de 10-11/08, 398 decks)
+
+Reexecutei `scripts/extract_real_decks.py` contra o mesmo lote de 199 episódios já baixado (`/tmp/.../scratchpad/episodes_sample/`, coletado em 10-11/08). Resultado: **31 arquétipos distintos** (assinatura = top-3 Pokémon por contagem). Descobri e corrigi um bug no script: quando dois arquétipos diferentes compartilham os dois primeiros Pokémon do top-3 (ex.: `Dwebble/Crustle/Mega Kangaskhan ex` e `Dwebble/Crustle/Team Rocket's Articuno`), o nome de arquivo gerado (`slug` = 2 primeiros nomes) colide e um grupo sobrescreve o outro silenciosamente — isso não foi corrigido no script em si (não crítico, o script já cumpriu seu papel), mas a extração usada para popular `data/decks/` desta vez foi feita manualmente em Python, com chave completa (3-tupla), evitando a colisão.
+
+Selecionei os **9 arquétipos de maior uso**, cobrindo **330/398 = 82.9%** do campo amostrado — bem mais representativo que os 4 arquétipos antigos (que cobriam uma fração bem menor e, por acaso, eram matchups relativamente favoráveis). Arquivos novos em `data/decks/` (substituindo os 4 antigos, que ficaram desatualizados frente à amostra maior):
+
+| Arquivo | Uso na amostra | Winrate do arquétipo (entre seus próprios pilotos) |
+|---|---|---|
+| `real_munkidori_impidimp.csv` | 21.4% | 36.5% |
+| `real_abra_kadabra_alakazam.csv` | 16.6% | 48.5% |
+| `real_dunsparce_dudunsparce.csv` | 14.8% | 62.7% |
+| `real_dwebble_crustle_kangaskhan.csv` | 8.5% | 47.1% |
+| `real_cynthias-roselia_gible.csv` | 5.8% | 47.8% |
+| `real_grookey_thwackey_applin.csv` | 5.3% | 71.4% |
+| `real_ogerpon_chikorita-meganium.csv` | 4.5% | 44.4% |
+| `real_dreepy_dragapult.csv` | 3.5% | 50.0% |
+| `real_ogerpon_solo.csv` | 2.5% | 50.0% |
+
+Nota importante: agrupando por **núcleo** (ex.: toda variante de "Teal Mask Ogerpon ex" como uma família), a família Ogerpon soma **~11.8%** de uso no campo (não só os 2.5%+4.5% capturados nos 2 arquivos testados) — acima do limiar de 10% do critério 2 de `docs/10`. A família Kangaskhan/Dwebble/Crustle soma **~10.1%**, também no limiar. Isso reforça que ambas merecem tratamento prioritário, não só o arquétipo isolado testado.
+
+### Baseline revalidado (deck `grass_v3.csv` + política atual, 35 partidas por adversário)
+
+| Adversário | Uso | Winrate |
+|---|---|---|
+| `munkidori_impidimp` | 21.4% | 77% |
+| `abra_kadabra_alakazam` | 16.6% | 77% |
+| `dunsparce_dudunsparce` | 14.8% | 46% |
+| `dwebble_crustle_kangaskhan` | 8.5% | **17%** |
+| `cynthias-roselia_gible` | 5.8% | 46% |
+| `grookey_thwackey_applin` | 5.3% | 86% |
+| `ogerpon_chikorita-meganium` | 4.5% | 37% |
+| `dreepy_dragapult` | 3.5% | 86% |
+| `ogerpon_solo` | 2.5% | **6%** |
+
+**Winrate ponderado: 59.8%** — bem abaixo dos 73.7% medidos na rodada anterior (que só cobria 4 arquétipos, por acaso favoráveis) e bem abaixo da meta de 80%. **Achado novo e crítico**: `Dwebble/Crustle/Mega Kangaskhan ex` (8.5% de uso) é um matchup ruim que não estava sendo medido antes — Mega Kangaskhan ex (300 HP, ataque de 200 dano por só 3 energia incolor) nocauteia qualquer Pokémon do nosso deck (HP máximo 140) em um golpe, e nosso melhor atacante (Tapu Bulu, 220 dano) não o nocauteia em um golpe (300 HP). Sem vantagem de tipo (Kangaskhan é fraco a Fighting, não a Grass), é um confronto de estatística pura que nosso deck perde.
+
+### Experimento 1 (revertido): Iron Leaves ex no lugar de Celebi — armadilha das 2 prize cards
+
+Hipótese inicial: trocar `Celebi` (80 HP, ataque de 30 dano por 1 energia — o elo mais fraco do deck) por `Iron Leaves ex` (220 HP, 180 dano por 3 energia — stats muito melhores) deveria ajudar especialmente contra Kangaskhan (sobreviveria ao golpe de 200). Testado como `grass_v4.csv`, 35 partidas contra os 9 arquétipos.
+
+**Resultado: regressão generalizada e severa** — Kangaskhan caiu de 17% para 11%, Ogerpon solo de 6% para **0%**, e a maioria dos outros matchups também piorou, com partidas em média 30-50% mais longas. **Causa raiz identificada**: `Iron Leaves ex` é um Pokémon `ex` (`card.ex == True`) — quando nocauteado, o oponente compra **2 prize cards** em vez de 1. O deck original (`Genesect`, `Pinsir`, `Celebi`, `Tapu Bulu`) não tem nenhum Pokémon `ex`, então o oponente precisa de 6 nocautes para vencer; adicionar 4 cópias de um `ex` reduz drasticamente esse número sempre que o oponente consegue nocauteá-lo (o que decks agressivos como Kangaskhan e Ogerpon fazem facilmente, já que superam nosso HP). Estatísticas melhores por si só **não compensam** o custo estrutural de prize cards em um formato de 6 prêmios. **Revertido** (`grass_v4.csv` removido); lição registrada: todo candidato a troca de carta precisa ter o campo `ex`/`megaEx`/`tera` checado e, por padrão, evitado, a menos que o ganho de dano/HP seja grande o suficiente para justificar nocautes mais raros (não veio a ser o caso aqui).
+
+### Experimento 2 (promovido): Virizion no lugar de Celebi
+
+Refeita a busca filtrando **apenas Pokémon não-`ex`** do pool Grass, básicos (sem linha de evolução, para não perder velocidade de setup). Melhor opção: `Virizion` (120 HP, ataque de 130 dano por 2 energia, custo de retirada 1 — igual ao de Celebi). Testado como `grass_v5.csv` (`Celebi` → `Virizion`, resto idêntico), 35 partidas por adversário real + revalidação contra os 5 decks sintéticos antigos (25 partidas cada, para descartar overfitting à amostra real).
+
+| Adversário | Uso | Winrate v3 (antes) | Winrate v5 (depois) |
+|---|---|---|---|
+| `munkidori_impidimp` | 21.4% | 77% | **97%** |
+| `abra_kadabra_alakazam` | 16.6% | 77% | 69% |
+| `dunsparce_dudunsparce` | 14.8% | 46% | 57% |
+| `dwebble_crustle_kangaskhan` | 8.5% | 17% | 23% |
+| `cynthias-roselia_gible` | 5.8% | 46% | 69% |
+| `grookey_thwackey_applin` | 5.3% | 86% | 86% |
+| `ogerpon_chikorita-meganium` | 4.5% | 37% | 49% |
+| `dreepy_dragapult` | 3.5% | 86% | 91% |
+| `ogerpon_solo` | 2.5% | 6% | **0%** |
+| Fighting/Darkness/Psychic/Water-evo (sintéticos) | — | 56-76% | 80-92% (todos melhoraram) |
+| Fire (sintético, contra-tipo estrutural) | — | 16% | 20% (ruído, contra-tipo aceito) |
+
+**Winrate ponderado (9 arquétipos reais): 59.8% → 68.2%.** Melhora real e ampla (7 de 9 matchups melhoraram ou empataram), sem nenhuma regressão nos decks sintéticos. **Promovido**: `grass_v5.csv` → `agent/deck.csv` (produção). Ponto negativo que fica em aberto: `ogerpon_solo` piorou (6%→0%) — hipótese não confirmada é que `Celebi` (ataque de 1 energia) dava uma resposta mais rápida contra esse adversário especificamente rápido (13.7 turnos médios, o mais curto de todos os matchups medidos), e `Virizion` (2 energia) perde exatamente esse turno de vantagem onde mais importa.
+
+### Experimentos 3 e 4 (descartados): outras variações do slot Celebi/Pinsir
+
+- `grass_v6.csv` (trocar `Pinsir` por `Virizion` em vez de `Celebi`, mantendo `Celebi`): ponderado 65.0% — pior que v5, embora tenha ajudado ligeiramente o `ogerpon_solo` (6%→9%). `Pinsir` parece mais valioso no slot do que `Celebi` apesar dos stats piores, provavelmente por causa do menor custo de retirada (2) reduzir o risco de ficar preso com um Pokémon fraco ativo.
+- `grass_v8.csv` (trocar **ambos** `Celebi`→`Virizion` e `Pinsir`→`Wo-Chien`, sem nenhum `ex`): ponderado 60.2% — pior que v5 e quase igual ao baseline v3. `Wo-Chien` tem custo de retirada 3 (vs. 2 do Pinsir), e isso parece pesar mais do que o dano extra compensa; partidas ficaram sensivelmente mais longas.
+- **Conclusão**: a melhor troca encontrada nesta rodada é isolada (só `Celebi`→`Virizion`); mexer em mais de uma peça ao mesmo tempo piorou o resultado em ambas as tentativas — reforça o princípio de testar uma mudança de cada vez com validação completa antes de combinar.
+
+### Situação após esta rodada
+
+Winrate ponderado **68.2%**, ainda abaixo da meta de 80% de `docs/10`. Dois problemas estruturais continuam sem solução:
+1. **Família Ogerpon (~11.8% de uso)**: winrate entre 0% e 49% dependendo da variante — viola o critério 2 de `docs/10` (arquétipo ≥10% de uso abaixo de 30% de winrate). Causa raiz (já diagnosticada em rodadas anteriores): jogo termina rápido demais (11.9-19.3 turnos) para nosso atacante mais forte (`Tapu Bulu`, 4 energia) ficar pronto.
+2. **Família Kangaskhan/Dwebble/Crustle (~10.1% de uso)**: winrate 23% — também no limite do critério 2. Causa raiz nova (diagnosticada nesta rodada): `Mega Kangaskhan ex` (300 HP, 200 de dano por 3 energia incolor) nocauteia qualquer coisa do nosso deck em um golpe e não tem fraqueza a Grass, então não há vantagem de tipo a explorar — é um problema de "parede de estatística" sem resposta óbvia dentro do pool de atacantes Grass não-`ex` (o melhor não-`ex` do pool inteiro, `Tapu Bulu`, ainda fica abaixo do HP do Kangaskhan em dano por golpe).
+
+Ambos exigiriam ou (a) aceitar o teto estrutural de uma heurística reativa sem busca — como o próprio material oficial da competição já avisa (`docs/06`, item 6) — ou (b) investir em busca/lookahead (`search_begin`/`search_step`), o que é um investimento de tempo maior do que resta no prazo. Ver decisão final em `docs/10-fine-tuning-avancado.md`.
