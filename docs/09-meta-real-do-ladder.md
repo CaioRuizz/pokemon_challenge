@@ -106,3 +106,13 @@ A pedido do usuário ("faça um loop para otimizar... até conseguir um resultad
 **Agregado ponderado pelo uso real (4 arquétipos, 86.9% do campo coberto): 71.3% → 73.7%.** O Ogerpon continua sendo o pior matchup (10%, ainda abaixo da meta de 40% definida no início do loop), mas não é mais catastrófico (4%), e o ganho nos outros três arquétipos reais (que juntos são ~74% do campo) mais que compensa a pequena perda nos sintéticos.
 
 **Meta do loop ("≥60% ponderado, nenhum matchup <40%") parcialmente atingida**: 73.7% ponderado (✅ acima de 60%), mas Ogerpon ainda em 10% (❌ abaixo de 40%). Decisão: promover mesmo assim, porque o agregado melhorou e nenhuma mudança piorou o que já era forte — não vale segurar um ganho real esperando resolver 100% do problema numa sessão só.
+
+**Ajuste fino tentado e descartado**: reduzir `_BENCH_REDIRECT_RATIO` de 1.4 para 1.15 (tornar o redirecionamento mais fácil de disparar) não mudou nada contra o Ogerpon (10% igual). Confirma que o gargalo não é o limiar de decisão — é tempo (o jogo termina antes do Tapu Bulu acumular energia), como já diagnosticado. Não vale investir mais nesse parâmetro específico.
+
+## Submissão desta rodada
+
+**v6** (ref 55447462, 12/08 03:07): deck `grass_v3.csv` (Tapu Bulu) + attach-routing restrito, status inicial `PENDING`. Enviada depois de validação completa (agregado ponderado 71.3% → 73.7%).
+
+## Próximo passo real para melhorar o Ogerpon além do que foi feito aqui
+
+Como o gargalo é tempo, não roteamento de energia, os próximos caminhos plausíveis são: (a) um atacante-bomba de custo **menor** que 4 energia (o pool teria que ser vasculhado de novo com esse critério específico — dano alto por HP do oponente, mas custo baixo); (b) usar a API de busca/lookahead do próprio engine (`search_begin`/`search_step`, ver `docs/01-definicao-problema.md`) para prever e reagir à ameaça do Ogerpon com mais antecedência, em vez de heurística reativa; (c) aceitar a fraqueza estrutural e confiar que Ogerpon (12.8% do campo) ainda deixa ~87% do campo em bom formato — o que os números desta sessão já sustentam.
