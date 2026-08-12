@@ -24,6 +24,18 @@ Estado no início do loop: deck `grass_v5.csv` (Celebi→Virizion) em produção
 
 **Sem mudança em produção nesta iteração** (o `agent/deck.csv` continua `grass_v5`; a correção de `_score_attach` é um no-op comportamental para esse deck mono-tipo) — nenhuma submissão nova necessária.
 
+## Iteração 2 (12/08) — terceira tentativa de retreat preditivo: inconclusiva, revertida
+
+Investiguei a API `search_begin`/`search_step` (assinatura completa em `vendor/cg/api.py:517-639`): é um simulador determinizado — recebe previsões da informação oculta do oponente (mão, deck, ativo se virado pra baixo) e deixa jogar hipoteticamente com o mesmo mecanismo de `select`/`option` do jogo real, nativo e rápido.Útil para lookahead de verdade, mas antes de investir nisso resolvi tentar mais uma vez, de forma ainda mais restrita, a ideia do "retreat preditivo" que já falhou 2x (`docs/08`) — porque a informação necessária para o caso específico do Kangaskhan (o ativo do oponente já visível no tabuleiro, com energia já anexada visível) **não precisa de previsão nenhuma**, já está 100% em `obs["current"]["players"]`.
+
+**Implementação** (`_best_ready_damage` + `ctx.predictive_danger` em `agent/policy_heuristic.py`, não commitada — revertida ao final): foge do ativo **somente** quando (a) o ataque do oponente já é pagável **agora**, com a energia já anexada (não hipotética) e (b) nosso ativo **não consegue** vencer a troca (matar de volta) neste mesmo turno. Mais restrita que as duas tentativas anteriores, que tratavam qualquer dano teoricamente possível como perigo.
+
+**Resultado**: testado contra o matchup-alvo (Kangaskhan) em dois pares a n=60: 10%→15% (melhora) numa rodada, depois 17%→9% (piora) num sweep completo de 35 partidas contra os 9 arquétipos. Ponderado geral: 58.9% (antes) vs 59.4% (depois) — estatisticamente indistinguível dado o nível de ruído já mapeado no matchup Kangaskhan (swings de 10-18 pontos percentuais entre execuções idênticas, mesmo a n=60). **Nenhuma melhora clara em nenhum lugar, nenhuma regressão clara em nenhum lugar** — um empate estatístico, não um ganho comprovado.
+
+**Decisão**: revertido (`git checkout -- agent/policy_heuristic.py`), terceiro resultado negativo/inconclusivo na mesma linha de investigação. **Conclusão prática**: esgotei a via de heurística reativa/preditiva simples para esse problema — três tentativas com formulações diferentes (ampla, moderada, restrita) não produziram ganho comprovado. O próximo passo real é a API de busca (`search_begin`/`search_step`), não mais variações desse mesmo tipo de regra estática. Fica registrado como não tentar uma quarta vez sem mudar de técnica.
+
+**Achado metodológico adicional**: o matchup Kangaskhan é consistentemente o mais ruidoso de todos os catalogados — mesmo a n=60 (o dobro do padrão usado no resto do projeto), duas execuções idênticas deram 10% e 15%. Registrando isso para não interpretar qualquer resultado futuro isolado desse matchup específico como sinal confiável sem replicação.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
