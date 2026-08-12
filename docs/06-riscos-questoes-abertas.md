@@ -18,17 +18,28 @@ Confirmado: o engine (`ptcg_engine/`, `cg/`) tem licença **`LicenseRef-PTCG-ABC
 
 **Regra prática para este repo** (já refletida em `03-arquitetura.md`): nunca dar `git add` em nada baixado de dentro de `sample_submission/`, `ptcg_engine/`, `*.pdf`, `*Card Data.csv`. Esses arquivos ficam só localmente (`vendor/`, gitignorado) e são recriados via `scripts/fetch_official.sh` sempre que necessário. Só código nosso (política, harness de avaliação, deck escolhido) é versionado.
 
-## 4. Sistema de rating do ladder — ainda não confirmado
+## 4. Sistema de rating do ladder — RESOLVIDO em 12/08/2026
 
-Os arquivos técnicos baixados (engine, `cg/api.py`) não descrevem como o ladder pontua as partidas (Elo puro? TrueSkill μ/σ?). Fontes de terceiros divergem entre si nesse ponto. Precisa vir do `/rules` ou da aba de leaderboard/discussão oficial — não é bloqueante para começar a codar (o agente não decide baseado nisso), mas afeta como lemos nosso próprio progresso no ladder.
+Lido via `kaggle competitions pages -c pokemon-tcg-ai-battle --content --page-name Evaluation`: o ladder usa um sistema estilo **TrueSkill** (rating N(μ, σ²)), com **μ0 = 600** como valor inicial de todo agente novo. σ diminui (rating fica mais "confiante"/estável) conforme mais episódios são jogados. Isso muda a leitura dos nossos scores observados (260–600): a maior parte está **abaixo** do ponto neutro de partida, não "baixo mas subindo de zero" — ver `docs/10-fine-tuning-avancado.md`. A "Validation Episode" (partida contra si mesmo) roda antes de o agente entrar no pool de matchmaking real.
 
-## 5. Limite de tempo por jogada — ainda não confirmado
+## 5. Limite de tempo por jogada — CONFIRMADO COMO NÃO DOCUMENTADO (12/08/2026)
 
-Fontes de terceiros mencionam um limite de tempo por decisão do agente, mas isso não apareceu nos arquivos técnicos lidos até agora (nem em `cg/api.py`, nem no `README.md` do engine). Relevante para decidir o quão "cara" a Fase 3 (busca via `search_begin`/`search_step`) pode ser em produção. Precisa ser confirmado no `/rules` antes de investir tempo em busca profunda.
+Busca extensiva não encontrou nenhum limite de tempo por jogada/turno/episódio documentado publicamente:
+- `rules.txt` (44 KB, texto completo de `/rules`): zero ocorrências de "time limit", "timeout", "seconds", palavras relacionadas.
+- Página FAQ oficial: menciona "Submission Resources" (`AgentDisk`, `AgentRam`, `AgentCpuCores`, `SubmissionSizeLimit`) mas como variáveis de template do Kaggle (`${competition.AgentDisk}`) — não resolvidas pela API nem pelo HTML estático da página (SPA renderizada em JS; o HTML bruto é só o shell de carregamento, ~5.7 KB).
+- Documentação externa do engine (`https://matsuoinstitute.github.io/cabt/` — `api.html`, `game.html`, `sim.html`, referenciada pela página oficial "How to Play"): nenhuma menção a timeout/limite de tempo/CPU/memória em nenhuma das três páginas.
+- Thread de discussão oficial da competição (tópico 708586, 28 mensagens, lida por completo via `kaggle competitions topic-messages`): nenhuma pergunta ou resposta sobre limite de tempo.
 
-## 6. Regras oficiais completas (`/rules`) ainda não lidas
+**Conclusão prática**: não há como confirmar um número exato antes do prazo. Mitigação adotada (em vez de continuar buscando): tratar como **risco desconhecido mas plausivelmente real** — evitar qualquer política que faça buscas custosas (ex.: MCTS profundo via `search_begin`/`search_step`) sem medir o tempo de execução localmente primeiro, e manter a heurística atual (O(nº de opções), sem laços não determinísticos) como está — já é seguramente rápida. Ver auditoria de robustez em `docs/10-fine-tuning-avancado.md` (item 3 dos critérios de "satisfatório").
 
-Só baixamos **dados** (engine, cartas, sample_submission) via API — o texto de regras em si (`https://www.kaggle.com/competitions/pokemon-tcg-ai-battle/rules`) é uma página só de texto/HTML, não um "arquivo de dados" baixável pela API `competitions files`/`download`. Precisa ser lido manualmente (copiar/colar aqui, ou por outro meio) para confirmar: banlist/regras de deck além do que já vimos nos dataclasses (ex.: 1 ACE SPEC), regras de scoring do ladder (item 4), limite de tempo (item 5), e critérios de avaliação da trilha Strategy (o que faz um relatório competitivo).
+## 6. Regras oficiais completas (`/rules`) — RESOLVIDO em 12/08/2026
+
+Lidas por completo via `kaggle competitions pages -c pokemon-tcg-ai-battle --content --page-name <X>` (contorna o problema de SPA em JS que bloqueava a leitura direta da página desde o início do projeto). Páginas lidas: `rules`, `Evaluation`, `Description`, `FrequentlyAskedQuestions`, `How_to_Submit_to_this_Competition`, `HowtoPlayPokémonTCG`, `Timeline`, `abstract`, `data-description`, `Prizes`. Principais achados novos:
+- **μ0 = 600** (ver item 4).
+- **Trilha Simulation em si não paga prêmio em dinheiro diretamente** — página "Prizes": "The Competition track itself does not include monetary prizes. However, participants who submit a report to the Hackathon track will be eligible for prize awards. Final rankings for Hackathon prizes will be determined based on both the Competition leaderboard performance and the Hackathon evaluation." Ou seja, o prêmio real (US$ 240.000, ver item 2) está atrelado à trilha Strategy/Hackathon, que avalia tanto o desempenho no leaderboard da Simulation quanto um relatório — reforça a importância de manter `docs/` completo para esse relatório (ver `CLAUDE.md`).
+- Declaração do organizador (post de 16/06/2026, tópico 708586) sobre as diferenças conhecidas entre o simulador e as regras oficiais do TCG físico: 3 diferenças catalogadas (casos de ataque não-selecionável, ordem de dano do Mega Zygarde ex, ordem de captura de prêmios em knockout simultâneo), todas descritas pelo próprio organizador como de impacto mínimo/nulo na competição. Frase de fechamento: "In this competition, please note that the simulator behavior will be treated as the correct behavior."
+- Declaração do organizador sobre a natureza do desafio: "Using rule-based programming alone may not ensure a high ranking... requires forward thinking, real-time adaptation, and optimal decision-making" — confirma que abordagens de heurística pura (como a nossa) têm um teto competitivo esperado, e que busca (MCTS via `search_begin`/`search_step`) ou RL são os caminhos para o topo do leaderboard.
+- Banlist/regras de deck: nada além do já confirmado empiricamente (1x ACE SPEC).
 
 ## 7. Risco de cronograma
 
