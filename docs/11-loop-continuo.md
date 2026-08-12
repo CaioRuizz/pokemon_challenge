@@ -150,6 +150,29 @@ Com a via de busca pausada, voltei para deck guiado por dados: `Crushing Hammer`
 
 **Ação tomada**: nenhuma mudança de código — não há uma correção óbvia do nosso lado (o ciclo é dirigido pelas cartas do oponente, não pelas nossas; nosso lado já prioriza ataque real sobre utilidade de dano zero, e 0 erros de política ocorreram mesmo nas partidas de 1000+ turnos, então a cadeia de fallback continua segura). Fica documentado como risco monitorado, não bloqueante (uso de 0.8% no campo, sem evidência real de ocorrência), mas relevante para o relatório final da trilha Strategy e para não ser pego de surpresa se aparecer de novo.
 
+## Iteração 10 (12/08) — checagem de deriva do meta (amostra fresca de 08-11) e novo arquétipo relevante
+
+O meta muda dia a dia (já documentado antes — `docs/09`). Baixei uma amostra fresca do dataset `kaggle/pokemon-tcg-ai-battle-episodes-2026-08-11` (o mais recente disponível, publicado 12/08 00:08 UTC) — 76 episódios / 152 decks (menor que a amostra de 199 episódios usada antes, por limite de tempo de download nesta iteração, mas ainda informativa).
+
+**Comparação de uso (08-10 → 08-11)**:
+
+| Arquétipo | Uso 08-10 | Uso 08-11 |
+|---|---|---|
+| `munkidori_impidimp` | 21.4% | **27.0%** (subiu) |
+| `abra_kadabra_alakazam` | 16.6% | 19.1% |
+| `dunsparce_dudunsparce` | 14.8% | 11.8% |
+| **`mega-lucario_solrock`** | **1.5%** | **10.5%** (⚠️ subiu muito) |
+| `dwebble_crustle_kangaskhan` | 8.5% | 8.6% (estável) |
+| `dreepy_dragapult` | 3.5% | 7.9% (subiu) |
+| família Ogerpon (todas variantes) | ~11.8% | ~8.0% (caiu) |
+| `grookey_thwackey_applin` | 5.3% | 0.7% (caiu bastante) |
+
+**Achado principal**: `Mega Lucario ex/Solrock/Riolu` — arquétipo que tínhamos catalogado (iteração 9) só por completude, com 1.5% de uso — **saltou para 10.5%**, virando o 4º arquétipo mais jogado nesta amostra fresca. Testei a produção atual (`agent/deck.csv`, com `Crushing Hammer`) contra ele a n=60: **53% de winrate** — matchup próximo do equilíbrio, sem alarme.
+
+**Recalculando o winrate ponderado com os pesos frescos** (usando os winrates já medidos a n=60 onde disponíveis): aproximadamente **65%** — parecido com os 70.5% medidos com os pesos antigos (dentro da margem de incerteza dado tudo que já vimos de ruído), não uma mudança de conclusão. `Munkidori` (nosso melhor matchup, 77%) ganhando peso ajuda; `Ogerpon` (nosso pior) perdendo peso ajuda; `Lucario` (nova entrada, 53%) e o fato de `Kangaskhan` continuar estável em ~8.6% mantêm o quadro geral parecido.
+
+**Conclusão**: nenhuma mudança de código motivada por este achado — o novo arquétipo relevante (`Lucario`) não é um problema (53%), e o quadro geral de winrate ponderado não mudou o suficiente para alterar a decisão sobre os critérios de `docs/10`. Fica registrado como confirmação de que o meta é dinâmico e vale reconferir periodicamente, não como algo acionável agora.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
