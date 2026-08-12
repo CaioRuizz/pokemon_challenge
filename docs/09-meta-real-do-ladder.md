@@ -42,6 +42,40 @@ Salvos em `data/decks/real_*.csv` (decklist do vencedor de cada arquétipo, extr
 
 Os outros três arquétipos reais (Marnie's/Munkidori, Alakazam, Dudunsparce) são todos **linhas de evolução de 2-3 estágios** — lentas para montar, e perdem contra um deck de básicos que já ataca com dano relevante desde o turno 2-3, pilotado pela mesma "inteligência" de política simples. Isso é uma validação real e forte da tese "simplicidade vence" que guiou as decisões de deck até aqui — mas só até esbarrar num `ex` de alto HP/escalável, que nenhuma velocidade de ataque básico resolve sozinha.
 
-## Decisão
+## Atualização: amostra ampliada (199 episódios de 10/08, 398 decks) — o meta girou
 
-Não mudei o deck a partir desta descoberta. É informação forte demais para ignorar, mas também grande demais para agir sozinho sem alinhar: incorporar um `ex` tanque como resposta ao Ogerpon é uma mudança de filosofia de deck (não um ajuste), e replicar exatamente esse deck exigiria entender vários trainers que ainda não catalogamos (`Bug Catching Set`, `Pokégear 3.0`, `Harlequin`, `Lively Stadium`, `Tera Orb`, `Jumbo Ice Cream`, `Judge`, `Lillie's Determination`). Também: `Teal Mask Ogerpon ex` tem só 3.4% de uso no ladder — é o melhor pelo `exp_vs_field`, mas o adversário mais provável no ladder de verdade ainda é a linha `Marnie's Grimmsnarl ex` (63.8%), contra a qual vencemos 100% na amostra real. Fica registrado como o próximo ponto de decisão real do projeto, não uma ação já tomada.
+A tier list da comunidade é de 31/07 (12 dias antes desta nota). Ampliei a amostra própria de 30 para 199 episódios (398 decks) e agreguei por **presença da carta-chave** (mais robusto que a assinatura "top-3 Pokémon" usada antes, que fragmentava o mesmo arquétipo em várias entradas por causa da ordem de contagem):
+
+| Arquétipo | Uso (amostra de 10/08) | Uso (tier list de 31/07) | Nosso winrate |
+|---|---|---|---|
+| Linha `Dudunsparce` | **34.4%** | não aparecia no top-8 | 68% (54%¹) |
+| Linha `Marnie's Grimmsnarl ex` | 21.9% | 63.8% | 100% (46%¹) |
+| Linha `Alakazam` | 17.8% | não aparecia no top-8 | 91% (48%¹) |
+| `Teal Mask Ogerpon ex` (todas variantes) | **12.8%** | 3.4% | **4%** (45%¹) |
+
+¹ winrate observado do próprio arquétipo dentro da amostra (contra o campo geral, não contra nós especificamente).
+
+**Conclusão**: o meta mudou substancialmente em 12 dias — `Marnie's Grimmsnarl ex` caiu de dominante (63.8%) para "só" o segundo mais comum (21.9%), e `Teal Mask Ogerpon ex` quadruplicou de uso (3.4% → 12.8%), deixando de ser nicho. Isso muda o cálculo: perder ~96% de 12.8% dos jogos custa uns 12 pontos percentuais de winrate esperado, não os ~3 que eu tinha estimado antes com o dado antigo.
+
+## Tentativa de resposta ao Ogerpon: Tapu Bulu (testada e descartada — achado real, não decisão de política)
+
+`Teal Mask Ogerpon ex` (`cardId=96`) tem 210 HP e escala dano com energia acumulada (ver seção acima). Procurando no pool por um atacante Grass que resolvesse isso, achei **`Tapu Bulu`** (`cardId=920`): HP 140, ataque único `Wood Hammer` — **220 de dano** por 4 energia (2 Grass + 2 Colorless), com único efeito colateral "30 de dano a si mesmo" (não é uma condição que impede o disparo, é sempre aplicável). Isso mataria o Ogerpon (210 HP) num golpe só.
+
+Montei `data/decks/grass_v3.csv` (troca `Shaymin` → `Tapu Bulu`, energia 27→ mantida) e testei contra `real_teal-mask-ogerpon-ex.csv`: **3% de vitória (1/30) — sem nenhuma melhora** (era 4% antes).
+
+**Causa raiz investigada e confirmada por trace**: nossa política **só anexa energia ao Pokémon ativo**, nunca prioriza o banco — mesmo quando o banco tem um atacante muito mais forte parado. Em nenhuma das 30 partidas contra o Ogerpon o `Tapu Bulu` chegou a receber energia suficiente para atacar sequer uma vez (confirmado rastreando `energies` do Tapu Bulu turno a turno). Contra oponentes que demoram mais pra decidir o jogo (ex.: o placeholder, ~13-95 turnos), ele eventualmente entra e ataca (confirmado em 2 de 5 partidas de checagem) — mas contra o Ogerpon, que decide o jogo em ~13-14 turnos, não há tempo.
+
+**Isso é uma limitação de arquitetura real, não uma questão de qual carta escolher**: para qualquer atacante-bomba (custo alto, dano alto) funcionar, a política precisaria rotear energia estrategicamente para o banco quando fizer sentido — exatamente o tipo de mudança (`_score_attach`, "attach direcionado") que **já tentei e revertida** duas seções acima por regredir em todos os matchups testados na época. Não tentei uma terceira variante desse mecanismo agora: o risco de regressão ampla é conhecido e real, e não há tempo nem supervisão disponível hoje para validar com o rigor que essa mudança exige (múltiplos matchups, amostras grandes, sem o usuário disponível para revisar antes de eu consumir a última submissão do dia).
+
+`data/decks/grass_v3.csv` fica no repositório como registro do experimento (não promovido a `agent/deck.csv`).
+
+## Decisão final desta sessão
+
+**Não mudei `agent/deck.csv` nem `agent/policy_heuristic.py`.** Nenhuma mudança tentada hoje (Tapu Bulu) passou na validação. O deck Grass atual (já em produção como v4) continua sendo a melhor versão validada: forte contra o arquétipo mais comum agora (`Dudunsparce`, 34.4%, 68% de winrate) e o antigo dominante (`Grimmsnarl`, 21.9%, 100%), fraco especificamente contra `Ogerpon` (12.8%, 4%). Estimativa de winrate agregado ponderado pelos 4 arquétipos cobertos (86.9% do campo): **~71%** — número saudável mesmo considerando o buraco conhecido do Ogerpon.
+
+**Não fiz uma nova submissão nesta sessão.** O código do agente não mudou desde a v4 (já `COMPLETE` no ladder), então reenviar o mesmo conteúdo não geraria nenhuma informação nova e gastaria desnecessariamente a última submissão disponível hoje — o oposto do que foi pedido ("cuidado para não desperdiçar envios com mudanças rasas"). A v4 continua sendo a submissão vigente.
+
+**Recomendação clara para a próxima sessão** (nesta ordem de prioridade):
+1. Implementar roteamento de energia para o banco (`_score_attach`) de forma mais restrita que as tentativas anteriores — só desviar quando o banco tiver um atacante cujo melhor ataque supere em muito (ex.: 1.5×+) o do ativo já pronto — e validar com rigor (todos os arquétipos reais catalogados aqui, amostras de 30+ partidas cada) antes de prometer qualquer ganho.
+2. Se isso destravar `Tapu Bulu` (ou similar) como resposta viável, reavaliar o matchup contra `Ogerpon` com o deck `grass_v3.csv` já pronto no repositório.
+3. Repetir a extração de decks reais (`scripts/extract_real_decks.py`) contra um dia mais recente antes de decidir qualquer coisa — o meta claramente não é estático (mudou muito em 12 dias), então essa checagem deveria ser rotina, não evento único.
