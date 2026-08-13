@@ -420,6 +420,8 @@ Sintéticos (n=30, mesmo conjunto de sempre): `fighting_rush_v3` 93%→**100%**,
 
 **Submetida como `v12`** (13/08, via `kaggle competitions submit`): 2 de 5 submissões restantes hoje depois desta (v10 e v11 já tinham usado 2 mais cedo no mesmo dia). Duas promoções validadas na mesma sessão (v11 e v12), cada uma com ganho líquido real medido e documentado, e a v11 permaneceu como produção estável durante toda a investigação da rodada seguinte que não validou — nenhuma promoção feita sem validação completa, mesmo sob pressão de continuar o loop.
 
+**Pós-v12: platô sólido de 6 rodadas seguidas (~240 gerações) em fitness 0.9082, sigma 0.3.** Reiniciado com sigma maior (0.3→0.6, mesmo padrão que escapou o platô da rodada 1 da arquitetura v1) a partir dos pesos da v12, pra tentar escapar do ótimo local atual antes de considerar essa configuração esgotada. Em andamento.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
