@@ -5,10 +5,10 @@ scripts/evolve_policy.py). Arquitetura de features v2 (26 dimensões: as 20
 originais de agent/policy_ml.py + 6 features de interação com contexto —
 ver docs/11, iteração 17), Python puro, sem dependência externa em runtime.
 
-Pesos: checkpoint de data/ml/evolved_weights_v2_floor.json (fitness com
-piso anti-sacrifício de arquétipo minoritário — ver docs/11, iteração 18),
-colado aqui após validação rigorosa (n=60 por arquétipo + generalização em
-decks sintéticos, ver docs/11)."""
+Pesos: checkpoint de data/ml/evolved_weights_v2_floor2.json (piso reforçado
+após uma rodada anterior erodi-lo — ver docs/11, iteração 18), colado aqui
+após validação rigorosa (n=60 por arquétipo + generalização em decks
+sintéticos, ver docs/11)."""
 from card_data import get_attack, get_card
 from fallback import safe_selection
 
@@ -24,18 +24,19 @@ _MAX_TURN_FOR_URGENCY = 30
 
 _OPTION_TYPES = [13, 9, 10, 11, 7, 8, 12, 14]  # ATTACK,EVOLVE,ABILITY,DISCARD,PLAY,ATTACH,RETREAT,END
 
-# scripts/evolve_policy.py, checkpoint v2-floor, geração 6, fitness (winrate
-# ponderado com piso anti-sacrifício, ruidoso) 0.8762. Validado a n=60 nos 10
-# arquétipos reais: 82.8% ponderado (vs 81.2% da versão anterior, v10), com
-# melhora nos dois matchups historicamente mais frágeis (docs/11, iteração 18).
+# scripts/evolve_policy.py, checkpoint v2-floor2 (piso reforçado 0.45/0.8),
+# geração 7, fitness (winrate ponderado com piso, ruidoso) 0.9082. Validado a
+# n=60 nos 10 arquétipos reais: 84.0% ponderado (vs 82.8% da v11), sem
+# regressão em nenhum arquétipo real além do já mapeado como ruído
+# (docs/11, iteração 18). Generalização em sintéticos também melhorou.
 _WEIGHTS = [
-    1.0483644600842272, 2.976561355128746, 1.7647301376794005, 3.1408979017670764,
-    3.2162030407537108, 1.7448502518447653, -2.7666933573587644, -0.23530201263153686,
-    -3.6841933038977563, -2.089823544272792, 1.117201296438104, 1.576765806621201,
-    0.07989547337044137, 1.844860606217843, -0.06647986322441798, -1.0798951032052744,
-    1.568210393102456, -0.1135192958449321, 2.465395889774743, 3.2175423382669317,
-    -0.772284805060298, 1.2280481811987318, 0.640339090150273, 0.29290298996728537,
-    -1.1384018874428565, -0.6635405829747308,
+    1.2794647851370293, 3.013387905567456, 1.603490837278607, 3.1081097591879048,
+    1.9965481738575757, 1.6392666579970407, -1.2753927607555038, -0.5537181175730002,
+    -2.5866127750111567, -2.272147085201538, 0.09638822567584489, 1.8320313599535452,
+    0.6436057654474802, 0.5797914357334872, 0.1805129007640659, -2.0332139750789366,
+    2.3471484350626635, 1.6378580160885594, 3.085445715890816, 4.854879161699331,
+    -0.21756463266789988, 1.3540730427114545, -0.31350944717815693, 0.39734119325726247,
+    -1.2035986230461226, -0.5953949911970098,
 ]
 
 

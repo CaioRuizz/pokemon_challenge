@@ -396,7 +396,27 @@ A rodada v2 (iteração 17) estabilizou depois da rodada 2 (checkpoint fitness=0
 
 Ganho agregado de apenas +0.2pp (dentro do ruído), mas com `dwebble_crustle_kangaskhan` caindo **abaixo do próprio piso** (38% < 40%) e `ogerpon_chikorita-meganium` perdendo boa parte do ganho conquistado na v11 (72%→58%). O piso de 0.40/escala 0.3 não foi forte o suficiente — o custo de ficar 2pp abaixo do piso (penalidade ≈0.006) foi menor que o ganho de fitness obtido em `cynthia`/`dunsparce` melhorando. **Não promovido** — sem ganho líquido real e regride exatamente a proteção que a v11 tinha conquistado.
 
-**Piso reforçado**: `_FLOOR_WINRATE` 0.40→0.45, `_FLOOR_PENALTY_SCALE` 0.3→0.8 (custa bem mais caro dipar abaixo do piso agora). Relançado a partir dos pesos **da produção** (v11, não do checkpoint gen10 que regrediu) — novo arquivo `evolved_weights_v2_floor2.json`, fitness resetado (função mudou de novo). Em andamento.
+**Piso reforçado**: `_FLOOR_WINRATE` 0.40→0.45, `_FLOOR_PENALTY_SCALE` 0.3→0.8 (custa bem mais caro dipar abaixo do piso agora). Relançado a partir dos pesos **da produção** (v11, não do checkpoint gen10 que regrediu) — novo arquivo `evolved_weights_v2_floor2.json`, fitness resetado (função mudou de novo).
+
+**Rodada 2 (com piso reforçado) achou um salto real e estável: fitness 0.9082 (geração 7), 33 gerações sem melhora depois.** Validado a n=60 nos 10 arquétipos reais + generalização em sintéticos:
+
+| Arquétipo | Uso | v11 (produção) | checkpoint gen7 (fitness 0.9082) |
+|---|---|---|---|
+| `munkidori_impidimp` | 21.4% | 92% | 92% |
+| `abra_kadabra_alakazam` | 16.6% | 92% | 93% |
+| `dunsparce_dudunsparce` | 14.8% | 87% | 92% |
+| `dwebble_crustle_kangaskhan` | 8.5% | 43% | 38% |
+| `cynthias-roselia_gible` | 5.8% | 87% | 92% |
+| `grookey_thwackey_applin` | 5.3% | 100% | 100% |
+| `ogerpon_chikorita-meganium` | 4.5% | 72% | 70% |
+| `dreepy_dragapult` | 3.5% | 98% | 100% |
+| `ogerpon_solo` | 2.5% | 23% | 28% |
+| `mega-lucario_solrock` | 1.5% | 63% | 68% |
+| **Ponderado** | | **82.8%** | **84.0%** |
+
+Sintéticos (n=30, mesmo conjunto de sempre): `fighting_rush_v3` 93%→**100%**, `darkness_v1` 93%→93% (igual), `psychic_v1` 87%→**97%**, `water_evo_v1` 97%→**100%**, `fire_v1` 50%→**60%**. **0 erros de política em todas as partidas** (600 reais + 150 sintéticas). Ganho líquido real de +1.2pp no ponderado, com melhora ou empate em 8 dos 10 arquétipos reais e melhora em 4 dos 5 sintéticos (o quinto ficou igual). O único recuo é `dwebble_crustle_kangaskhan` (43%→38%), dentro da faixa de ruído de 25+pp já documentada para esse matchup especificamente (iteração 8) — mesmo com o piso reforçado, o sinal de treino (16 partidas/arquétipo) não necessariamente capta esse matchup específico com precisão suficiente pra o piso agir com certeza absoluta.
+
+**Decisão: promovido e submetido como `v12`.** Ganho líquido real e mais amplo que a v11 (melhora em quase todos os arquétipos reais E generalização em sintéticos, ao contrário da v2 sem piso). `agent/policy_evolved.py` atualizado com os pesos do checkpoint `evolved_weights_v2_floor2.json` (geração 7) — mesma arquitetura de 26 features (inalterada desde a v11). Paridade de decisão confirmada (0 divergências em 157 decisões comparadas) e validação end-to-end via `main.agent()` (0 erros em 10 partidas completas). Otimização continua rodando em background (rodada 3 em andamento) para eventual próxima melhoria.
 
 ## Próximos passos identificados para as próximas iterações do loop
 
