@@ -326,6 +326,28 @@ Testado com `ast.parse` (sintaxe) e uma rodada de fumaça (1 geração, pop=4, 2
 
 Nota de consistência: `agent/policy_evolved.py` (produção atual, v10) segue com os pesos 20-dim originais — **não foi tocado**. Se a rodada v2 validar como melhoria real, a arquitetura de `option_features()` (incluindo as 6 features novas e os helpers `_best_ready_or_potential_damage`/`_defender_scales_with_active_energy`) precisa ser espelhada com exatidão em `policy_evolved.py` antes de promover, senão treino e inferência ficam dessincronizados.
 
+## Iteração 18 (13/08) — checkpoint v2 (fitness 0.9452) validado a n=60: sem ganho real, regressão suspeita nos dois matchups mais frágeis; não promovido
+
+A rodada v2 (iteração 17) estabilizou depois da rodada 2 (checkpoint fitness=0.9452, geração 38) — a rodada 3 inteira (40 gerações) não achou nada melhor, mesmo critério de estabilização usado para promover a v10 na iteração 15. Validado a n=60 nos 10 arquétipos reais, mesma metodologia de sempre (nosso deck pilotado pelo candidato, oponente fixo em `policy_heuristic`, jogos alternando quem começa):
+
+| Arquétipo | Uso | Winrate v10 (produção) | Winrate v2 (fitness 0.9452) |
+|---|---|---|---|
+| `munkidori_impidimp` | 21.4% | 88% | 90% |
+| `abra_kadabra_alakazam` | 16.6% | 90% | 95% |
+| `dunsparce_dudunsparce` | 14.8% | 87% | 93% |
+| `dwebble_crustle_kangaskhan` | 8.5% | 47% | **37%** |
+| `cynthias-roselia_gible` | 5.8% | 92% | 90% |
+| `grookey_thwackey_applin` | 5.3% | 98% | 100% |
+| `ogerpon_chikorita-meganium` | 4.5% | 57% | **45%** |
+| `dreepy_dragapult` | 3.5% | 98% | 92% |
+| `ogerpon_solo` | 2.5% | 12% | 12% |
+| `mega-lucario_solrock` | 1.5% | 70% | 70% |
+| **Ponderado** | | **81.2%** | **81.8%** |
+
+**0 erros de política** nas 600 partidas — robustez mantida. Mas o ganho agregado (+0.6pp) está bem dentro do ruído já mapeado para a métrica ponderada inteira, e vem acompanhado de **regressão de 10-12pp em exatamente os dois matchups mais historicamente frágeis do projeto inteiro** (`dwebble_crustle_kangaskhan` e `ogerpon_chikorita-meganium`) — os mesmos dois que a iteração 8 já tinha identificado como tendo variância de 25+ pontos percentuais a n=60 mesmo com código **idêntico** entre execuções. Ou seja, não dá pra afirmar com confiança que essa regressão é real e não ruído amostral desses dois matchups especificamente — mas também não dá pra descartar que seja real (o salto de fitness do CMA-ES, 0.9262→0.9452, claramente não se traduziu em ganho real proporcional no winrate agregado, o que é consistente com a hipótese de que a busca está sobreajustando aos arquétipos majoritários — que dominam o peso do fitness ponderado — às custas dos matchups pequenos e difíceis).
+
+**Decisão: não promovido, não submetido.** O critério do projeto é não afirmar ganho que os dados não sustentam (`docs/10`), e aqui os dados não sustentam um ganho líquido claro sobre a v10 — na melhor hipótese é ruído, na pior é uma regressão real nos matchups mais importantes de corrigir. `agent/policy_evolved.py` continua com os pesos 20-dim da v10 (fitness 0.9262, validado 81.2%). A rodada de otimização v2 continua rodando em background (rodada 4 em andamento) — se um checkpoint futuro mostrar ganho líquido real (sem regressão nos dois matchups frágeis, ou com ganho grande o suficiente pra compensar), reavalio. Caso o padrão se repita (fitness sobe, ganho real não aparece, regressão nos mesmos dois matchups), é evidência de que o espaço de features v2 não é a resposta e vale reconsiderar a abordagem.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
