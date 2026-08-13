@@ -279,6 +279,10 @@ A rodada de CMA-ES (iteração 14) estabilizou por 18+ gerações em fitness=0.9
 
 A pedido do usuário, a otimização (`scripts/evolve_policy.py`) continua rodando em background (checkpoint em `data/ml/evolved_weights.json`, commitado periodicamente). Quando encontrar uma melhora nova e suficientemente validada (mesmo processo: n=60 nos 10 arquétipos + sintéticos, sem regressão), promovo de novo e submeto, respeitando a cota diária (usada: 1 de 5 hoje até agora nesta rodada, `v10`).
 
+**Score real da v10**: 359.2 — dentro da faixa das últimas submissões (329-361), sem salto visível apesar do ganho local de 62-70%→81.2%. Consistente com o padrão de instabilidade já bem documentado nesta sessão (rating tipo TrueSkill ainda convergindo, poucas partidas acumuladas por submissão) — não é tratado como sinal de que a melhora local não é real, só reforça que uma leitura isolada do score real não é confiável tão cedo.
+
+**Rodada 2 do CMA-ES**: a rodada 1 estabilizou em fitness=0.9262 depois da geração 22 (40+ gerações sem melhora). Reiniciada com sigma maior (0.4→0.6) e população maior (12→14), a partir do mesmo checkpoint (warm-start) — escapou do platô rapidamente, novo melhor fitness=0.9351 já na geração 4. Em andamento.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
