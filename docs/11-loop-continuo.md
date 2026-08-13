@@ -211,6 +211,22 @@ Nenhuma mudança de **deck** foi promovida nesta sessão estendida (Hand Trimmer
 
 **Cota de submissões esgotada por hoje (12/08)** — usuário avisou que não vai mandar mais mensagens hoje. Próxima iteração do loop deve continuar a partir daqui na próxima interação (a cota reseta, historicamente, por volta da virada do dia UTC).
 
+## Iteração 12 (13/08) — causa raiz do bug do `search_step` isolada: não é a predição, é o próprio `search_step`
+
+Retomei a investigação pausada nas iterações 4-5 com o teste que ficou pendente: isolar o problema usando previsões **exatas** (sem reamostragem ingênua), já que a hipótese até aqui era "baralho previsto degenerado confunde o engine".
+
+**Teste 1** (previsão do baralho do oponente 100% fiel — usando o próprio `deck_b` real, subtraindo o que já foi revelado, respeitando contagem real de cópias): a simulação **ainda travou** (200+ passos presos no turno 9, sem avançar). Isso **descarta a hipótese da predição degenerada** como causa suficiente — mesmo com informação perfeita do lado do oponente, o problema persiste.
+
+**Teste 2** (previsão do NOSSO PRÓPRIO baralho também corrigida — antes eu usava `[energia]*N` como placeholder para o nosso lado, o que é claramente errado já que efeitos de compra como `Cheren`/`Urbain` puxam desse baralho previsto): ainda travou.
+
+**Teste 3, decisivo** (mão mínima e 100% conhecida — sem nenhuma predição em jogo, só 5 cópias de `Basic Grass Energy` na mão real): rastreando passo a passo, o padrão ficou claro e reproduzível: depois de anexar a energia disponível (`energyAttached=True`), a única opção restante no select é **END** (`type=14`, única opção, `minCount=1, maxCount=1`). Escolher essa única opção (`choice=[0]`) — exatamente a mesma resposta que `safe_selection` produziria e que funciona perfeitamente em milhares de partidas reais via `battle_select` — **não avança o turno**: `turnActionCount`, `turn` e a mão inteira ficam idênticos indefinidamente, repetindo o mesmo select "só END disponível" para sempre.
+
+**Controle decisivo**: reproduzi a mesma sequência de decisões (mesma semente de RNG) usando `battle_select` (jogo real, não busca) — o turno avança normalmente de 9 para 10, passando por múltiplos `SelectType` diferentes (inclusive um tipo `1` com `minCount=0`, resolvido corretamente por `safe_selection` retornando lista vazia `[]`) sem nenhum travamento.
+
+**Conclusão**: o problema **não é a qualidade da nossa predição de mão/baralho oculto** (a hipótese original das iterações 4-5) — é um comportamento específico de **como `search_step` processa a transição de turno**, que diverge do que `battle_select` faz na partida real, mesmo para a resposta EXATA que funciona perfeitamente fora da busca. Pode ser uma limitação genuína do modo de busca do engine nativo (ex.: precisar de algum sinal adicional que `battle_select` dispara automaticamente e `search_step` não), não um erro de uso da API que eu consiga corrigir só ajustando a predição.
+
+**Decisão final sobre esta linha de investigação**: encerrada por ora. Já foram 3 iterações (4, 5, 12) tentando entender/contornar isso, com uma causa raiz agora bem isolada mas sem solução óbvia do nosso lado (não temos acesso ao código-fonte do `libcg.so`, só à API documentada em `vendor/cg/api.py`, que não documenta esse comportamento). Não vale continuar sem uma pista nova (ex.: um exemplo oficial de uso de `search_step` para comparar, que não temos). `agent/search_lookahead.py` permanece no repositório como registro do trabalho e do diagnóstico, não integrado, não usado em produção.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
