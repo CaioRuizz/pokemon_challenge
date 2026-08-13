@@ -1,10 +1,11 @@
 import os
 
 import policy_baseline
+import policy_evolved
 import policy_heuristic
 from fallback import safe_selection
 
-_POLICIES = [policy_heuristic.choose, policy_baseline.choose]
+_POLICIES = [policy_evolved.choose, policy_heuristic.choose, policy_baseline.choose]
 
 
 def read_deck_csv() -> list[int]:

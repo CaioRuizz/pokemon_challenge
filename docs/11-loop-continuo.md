@@ -248,6 +248,37 @@ Warm-start a partir dos pesos do `policy_ml.py` (iteração de imitation learnin
 
 **Rodada de otimização em andamento** (lançada em background nesta sessão): 300 gerações, população 12, 8 partidas por arquétipo por avaliação (≈960 partidas/geração, ~30s/geração). Progresso registrado abaixo conforme checkpoints relevantes.
 
+## Iteração 15 (13/08) — otimização evolutiva estabiliza, valida MUITO acima da meta, promovida e submetida
+
+A rodada de CMA-ES (iteração 14) estabilizou por 18+ gerações em fitness=0.9262 (geração 22 de 300 planejadas — deixado rodando em background, ver "evolução contínua" abaixo). Peguei o checkpoint nesse ponto para validação rigorosa (metodologia igual à sessão inteira: nosso deck pilotado pela política candidata, oponente pilotado por `policy_heuristic` fixo).
+
+**Validação n=60, 10 arquétipos reais** (cobertura 84.4% do campo por uso):
+
+| Adversário | Uso | Winrate antes (`policy_heuristic`) | Winrate `policy_evolved` |
+|---|---|---|---|
+| `munkidori_impidimp` | 21.4% | 72-77% | **88%** |
+| `abra_kadabra_alakazam` | 16.6% | 70-83% | **90%** |
+| `dunsparce_dudunsparce` | 14.8% | 65-80% | **87%** |
+| `dwebble_crustle_kangaskhan` | 8.5% | 13-35% | **47%** |
+| `cynthias-roselia_gible` | 5.8% | 63-80% | **92%** |
+| `grookey_thwackey_applin` | 5.3% | 90% | **98%** |
+| `ogerpon_chikorita-meganium` | 4.5% | 33-49% | **57%** |
+| `dreepy_dragapult` | 3.5% | 85-96% | **98%** |
+| `ogerpon_solo` | 2.5% | 8-13% | 12% (sem mudança) |
+| `mega-lucario_solrock` | 1.5% | 53-60% | **70%** |
+
+**Winrate ponderado: 81.2%** — primeira vez que bate a meta de 80% definida em `docs/10`. **Todo matchup melhorou ou ficou igual, nenhum piorou** — incluindo os dois problemas estruturais mais persistentes da sessão inteira (Kangaskhan e Ogerpon-chikorita), que agora cruzam o limiar de 30% do critério 2 de `docs/10`.
+
+**Generalização** (decks sintéticos, fora do conjunto usado no fitness — checagem contra overfitting): `fighting_rush_v3` 100%, `darkness_v1` 97%, `psychic_v1` 100%, `water_evo_v1` 93%, e até o contra-tipo estrutural `fire_v1` (Grass é fraco a Fire por design do jogo) subiu de ~16-34% para **70%**. Isso descarta a hipótese de que a otimização só decorou os 10 arquétipos usados como fitness — a melhora é ampla.
+
+**Robustez**: 0 erros de política em ~500+ partidas de validação (10 partidas isoladas + n=60×10 arquétipos + n=30×5 sintéticos). O arquétipo de risco de stall (`slowpoke_slowking`, iteração 9) também melhorou bastante: 87% de winrate, só 1 empate em 30 (era 8-11 empates em 25-35 antes) e tempo médio de partida bem menor (59 turnos vs 300-500+ antes) — a política evoluída parece lidar com esse adversário de forma mais decisiva.
+
+**Promovido e submetido como v10**: `agent/policy_evolved.py` (novo módulo, arquitetura idêntica a `policy_ml.py` — 20 features, Python puro, sem dependência externa) adicionado à cadeia de fallback em `agent/main.py` como primeira opção: `[policy_evolved, policy_heuristic, policy_baseline] → safe_selection`. Validado de ponta a ponta com o pacote real (`main.agent()`, não só `choose()` isolado) antes de submeter — 0 erros.
+
+## Evolução contínua (a partir daqui)
+
+A pedido do usuário, a otimização (`scripts/evolve_policy.py`) continua rodando em background (checkpoint em `data/ml/evolved_weights.json`, commitado periodicamente). Quando encontrar uma melhora nova e suficientemente validada (mesmo processo: n=60 nos 10 arquétipos + sintéticos, sem regressão), promovo de novo e submeto, respeitando a cota diária (usada: 1 de 5 hoje até agora nesta rodada, `v10`).
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
