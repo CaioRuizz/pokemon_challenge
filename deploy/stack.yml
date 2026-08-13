@@ -1,0 +1,29 @@
+# Stack pro Portainer (Docker Compose). Suba via Portainer > Stacks > Add stack
+# > cole este conteúdo (ou aponte pro repositório git).
+services:
+  evolve:
+    build:
+      context: ../..
+      dockerfile: pokemon_challenge/deploy/Dockerfile
+    restart: unless-stopped
+    environment:
+      GENERATIONS_PER_ROUND: "50"
+      GAMES_PER_ARCHETYPE: "8"
+      POP_SIZE: "12"
+      # DECK_ROTATION: "data/decks/grass_v11_hammer.csv data/decks/fighting_rush_v3.csv"
+      # GIT_REMOTE: "github.com/CaioRuizz/pokemon_challenge.git"
+      # GIT_TOKEN: "<personal access token com permissão de push>"
+      # GIT_BRANCH: "claude/documentation-planning-structure-al6jxc"
+    volumes:
+      - kaggle_creds:/root/.kaggle:ro
+      - evolve_data:/app/data/ml
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+
+volumes:
+  kaggle_creds:
+    external: true # crie manualmente e coloque kaggle.json ou access_token dentro
+  evolve_data:
