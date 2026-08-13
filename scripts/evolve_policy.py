@@ -304,8 +304,10 @@ def load_archetypes(decks_dir: Path, weights_csv: Path | None):
     return archetypes
 
 
-_FLOOR_WINRATE = 0.40  # ver docs/11, iteração 18: media ponderada por uso deixa o CMA-ES
-_FLOOR_PENALTY_SCALE = 0.3  # sacrificar arquétipos minoritários (baixo peso) por ganho nos majoritários
+_FLOOR_WINRATE = 0.45  # ver docs/11, iteração 18: media ponderada por uso deixa o CMA-ES
+_FLOOR_PENALTY_SCALE = 0.8  # sacrificar arquétipos minoritários (baixo peso) por ganho nos majoritários
+# (piso 0.30 erodiu de novo numa rodada seguinte independente - kangaskhan 43%->38% mesmo com
+# penalidade ativa; reforçado aqui para custar mais caro dipar abaixo do piso, ver iteração 18)
 
 
 def fitness(weights, our_deck, archetypes, games_per_archetype, opponent_choose):

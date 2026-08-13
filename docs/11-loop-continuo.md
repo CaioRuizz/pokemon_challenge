@@ -378,6 +378,26 @@ A rodada v2 (iteração 17) estabilizou depois da rodada 2 (checkpoint fitness=0
 
 **Submetida como `v11`** (13/08, via `kaggle competitions submit`): 3 de 5 submissões restantes hoje depois desta (v10 já tinha usado 1 mais cedo no mesmo dia). Score real ainda não disponível no momento do registro — como já documentado repetidamente nesta sessão, uma leitura isolada de score real não é tratada como sinal definitivo dado o padrão de instabilidade já mapeado (rating ainda convergindo, poucas partidas por submissão).
 
+**Otimização continuou em background após a v11 — piso de 0.40 erodiu de novo numa rodada independente seguinte.** A rodada 4 (pós-promoção) achou um salto real de fitness (0.8792→0.9057, bem acima do ruído de ~0.002-0.008 visto nas rodadas 2-3) e estabilizou nele por quase um round inteiro (29 gerações sem melhora) — validado a n=60 por precaução, mesma metodologia:
+
+| Arquétipo | Uso | v11 (produção) | checkpoint gen10 (fitness 0.9057) |
+|---|---|---|---|
+| `munkidori_impidimp` | 21.4% | 92% | 90% |
+| `abra_kadabra_alakazam` | 16.6% | 92% | 92% |
+| `dunsparce_dudunsparce` | 14.8% | 87% | 92% |
+| `dwebble_crustle_kangaskhan` | 8.5% | 43% | **38%** |
+| `cynthias-roselia_gible` | 5.8% | 87% | 100% |
+| `grookey_thwackey_applin` | 5.3% | 100% | 100% |
+| `ogerpon_chikorita-meganium` | 4.5% | 72% | **58%** |
+| `dreepy_dragapult` | 3.5% | 98% | 97% |
+| `ogerpon_solo` | 2.5% | 23% | 23% |
+| `mega-lucario_solrock` | 1.5% | 63% | 72% |
+| **Ponderado** | | **82.8%** | 83.0% |
+
+Ganho agregado de apenas +0.2pp (dentro do ruído), mas com `dwebble_crustle_kangaskhan` caindo **abaixo do próprio piso** (38% < 40%) e `ogerpon_chikorita-meganium` perdendo boa parte do ganho conquistado na v11 (72%→58%). O piso de 0.40/escala 0.3 não foi forte o suficiente — o custo de ficar 2pp abaixo do piso (penalidade ≈0.006) foi menor que o ganho de fitness obtido em `cynthia`/`dunsparce` melhorando. **Não promovido** — sem ganho líquido real e regride exatamente a proteção que a v11 tinha conquistado.
+
+**Piso reforçado**: `_FLOOR_WINRATE` 0.40→0.45, `_FLOOR_PENALTY_SCALE` 0.3→0.8 (custa bem mais caro dipar abaixo do piso agora). Relançado a partir dos pesos **da produção** (v11, não do checkpoint gen10 que regrediu) — novo arquivo `evolved_weights_v2_floor2.json`, fitness resetado (função mudou de novo). Em andamento.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
