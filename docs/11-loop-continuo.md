@@ -236,6 +236,18 @@ Duas ideias adicionais exploradas rapidamente, ambas sem sinal fora do ruído:
 
 Com isso, considero a busca por melhorias incrementais de deck/política **razoavelmente esgotada** para esta rodada — muitas frentes tentadas (atacantes alternativos, disrupção adicional, corte de energia, recalibração de parâmetros, habilidades, energia especial), só duas produziram ganho validado (`Crushing Hammer`, correção de setup do ativo). O estado atual (`agent/deck.csv` + `agent/policy_heuristic.py`, já submetido como v9) permanece o melhor validado.
 
+## Iteração 14 (13/08) — otimização evolutiva (CMA-ES) direto sobre winrate real
+
+Depois do resultado negativo de imitation learning (`docs/12`), o usuário perguntou sobre reinforcement learning. RL completo (rede neural + self-play + policy gradient) foi avaliado como inviável no tempo restante, mas uma alternativa mais tratável surgiu: em vez de imitar dados de log, **otimizar direto os pesos do vetor de scoring contra o winrate real**, usando busca evolutiva (CMA-ES) — sem rede neural, sem gradiente, sem problema de atribuição de crédito ao longo de dezenas de turnos.
+
+**Implementação** (`scripts/evolve_policy.py`): reusa a mesma arquitetura de features de `agent/policy_ml.py` (20 dimensões), mas o vetor de pesos é o genoma evoluído pelo `cma` (biblioteca `pycma`, instalada via pip). Fitness = winrate ponderado (pelo uso real dos 10 arquétipos catalogados) do nosso deck pilotado pelo candidato contra os arquétipos pilotados por `policy_heuristic` (mesmo proxy de oponente usado a sessão inteira) — com uma pequena penalidade por erro de política (rede de segurança acionada), pra evitar que a busca favoreça soluções instáveis. Checkpoint incremental em `data/ml/evolved_weights.json` a cada nova melhor solução encontrada, para não perder progresso.
+
+Warm-start a partir dos pesos do `policy_ml.py` (iteração de imitation learning), já que é um ponto de partida melhor que aleatório.
+
+**Artefatos de deploy** (`deploy/`) também preparados para quando o usuário subir o Portainer mencionado: `Dockerfile` + `entrypoint.sh` + `stack.yml` (Docker Compose) + `README.md`. Decisão importante de licenciamento: o container **nunca embute o engine** (`vendor/cg/`) — ele busca sozinho via `scripts/fetch_official.sh` usando as credenciais do Kaggle do próprio usuário, montadas como volume/secret, para não violar a cláusula de "proibida redistribuição a terceiros" da licença do engine (`docs/06`, item 3) — o raciocínio (revisado com o usuário) é que isso é diferente de "transmitir a um terceiro não participante", já que é o próprio participante rodando em infraestrutura que ele controla.
+
+**Rodada de otimização em andamento** (lançada em background nesta sessão): 300 gerações, população 12, 8 partidas por arquétipo por avaliação (≈960 partidas/geração, ~30s/geração). Progresso registrado abaixo conforme checkpoints relevantes.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
