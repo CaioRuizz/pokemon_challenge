@@ -16,6 +16,7 @@ Este diretório contém **apenas planejamento** (nenhum código ainda). O objeti
 10. [Meta Real do Ladder](./09-meta-real-do-ladder.md) — dados de outros agentes (episódios do ladder, tier list da comunidade) e o que fazer com eles.
 11. [Fine-tuning Avançado](./10-fine-tuning-avancado.md) — critérios de "resultado satisfatório" e a rodada de otimização que os definiu.
 12. [Loop Contínuo](./11-loop-continuo.md) — log das iterações do loop autônomo em andamento (a partir de 12/08), até o fechamento da trilha Simulation.
+13. [Imitation Learning](./12-imitation-learning.md) — tentativa de política aprendida a partir de partidas reais do ladder; resultado negativo documentado, infraestrutura mantida para retomar.
 
 ## Leia primeiro
 
