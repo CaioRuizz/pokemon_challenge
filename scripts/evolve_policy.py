@@ -304,10 +304,15 @@ def load_archetypes(decks_dir: Path, weights_csv: Path | None):
     return archetypes
 
 
+_FLOOR_WINRATE = 0.40  # ver docs/11, iteração 18: media ponderada por uso deixa o CMA-ES
+_FLOOR_PENALTY_SCALE = 0.3  # sacrificar arquétipos minoritários (baixo peso) por ganho nos majoritários
+
+
 def fitness(weights, our_deck, archetypes, games_per_archetype, opponent_choose):
     choose_a = make_weighted_choose(weights)
     total_weight = 0.0
     total_score = 0.0
+    floor_penalty = 0.0
     for path, weight in archetypes:
         opp_deck = [int(x) for x in path.read_text().split()]
         wins = 0
@@ -325,7 +330,12 @@ def fitness(weights, our_deck, archetypes, games_per_archetype, opponent_choose)
         penalty = 0.05 * errors_total  # penaliza erro de política (rede de segurança acionada)
         total_score += weight * (winrate - penalty)
         total_weight += weight
-    return total_score / total_weight
+        # penalidade absoluta (não escalada pelo peso de uso) por arquétipo abaixo do piso —
+        # sem isso, a média ponderada permite trocar arquétipos de baixo uso por ganho nos
+        # majoritários, mesmo que isso reverta melhorias já validadas (docs/11, iteração 18).
+        if winrate < _FLOOR_WINRATE:
+            floor_penalty += (_FLOOR_WINRATE - winrate) * _FLOOR_PENALTY_SCALE
+    return total_score / total_weight - floor_penalty
 
 
 def main():
