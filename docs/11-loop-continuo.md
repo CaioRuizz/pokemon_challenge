@@ -227,6 +227,15 @@ Retomei a investigação pausada nas iterações 4-5 com o teste que ficou pende
 
 **Decisão final sobre esta linha de investigação**: encerrada por ora. Já foram 3 iterações (4, 5, 12) tentando entender/contornar isso, com uma causa raiz agora bem isolada mas sem solução óbvia do nosso lado (não temos acesso ao código-fonte do `libcg.so`, só à API documentada em `vendor/cg/api.py`, que não documenta esse comportamento). Não vale continuar sem uma pista nova (ex.: um exemplo oficial de uso de `search_step` para comparar, que não temos). `agent/search_lookahead.py` permanece no repositório como registro do trabalho e do diagnóstico, não integrado, não usado em produção.
 
+## Iteração 13 (13/08) — buscas adicionais sem sucesso: habilidades e energia especial
+
+Duas ideias adicionais exploradas rapidamente, ambas sem sinal fora do ruído:
+
+- **Habilidades**: nenhum dos 4 Pokémon do deck atual (`Genesect`, `Pinsir`, `Virizion`, `Tapu Bulu`) tem habilidade — ao contrário do `Teal Mask Ogerpon ex` (habilidade "Teal Dance": anexa energia extra + compra carta, todo turno). Busquei no pool inteiro por um básico Grass não-`ex` com habilidade de aceleração de energia ou compra comparável — não existe nada parecido disponível (as únicas habilidades encontradas em básicos Grass são de prevenção de dano no banco, evolução condicional, ou cura pequena — nada que compense a assimetria estrutural).
+- **`Grow Grass Energy`** (id 18, energia especial não-ACE-SPEC: fornece energia Grass + dá +20 HP ao Pokémon que a carrega): testado trocando 4x `Basic Grass Energy` por ela. Kangaskhan 15% (dentro da faixa 13-35% já mapeada), Munkidori 80% (normal). +20 HP por cópia não é suficiente para virar nenhum limiar de nocaute que importa (ex.: ainda morre pro golpe de 200 do Kangaskhan). Descartado.
+
+Com isso, considero a busca por melhorias incrementais de deck/política **razoavelmente esgotada** para esta rodada — muitas frentes tentadas (atacantes alternativos, disrupção adicional, corte de energia, recalibração de parâmetros, habilidades, energia especial), só duas produziram ganho validado (`Crushing Hammer`, correção de setup do ativo). O estado atual (`agent/deck.csv` + `agent/policy_heuristic.py`, já submetido como v9) permanece o melhor validado.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
