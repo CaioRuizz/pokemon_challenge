@@ -450,6 +450,8 @@ Considerado e descartado por falta de tempo e histórico já negativo: tech de d
 
 Meta acordada com o usuário: iterar e submeter até 4 vezes hoje, sempre com validação n=60 antes de qualquer promoção — sem pular a disciplina mesmo com o prazo apertando (ver critério de desempate de `docs/10`: "submeter a melhor versão validada localmente antes de arriscar ficar sem tempo").
 
+**Cadeia `explore` achou fitness 0.9130 (geração 26) — validado a n=60, empate técnico com a v12 (não promovido).** Ponderado: 83.5% (vs 84.0% da v12). `munkidori_impidimp` (o arquétipo de maior peso, 21.4%) caiu de 92%→87%; `ogerpon_chikorita` e `ogerpon_solo` também caíram um pouco; compensado por ganhos em `kangaskhan` (38%→43%), `abra_kadabra` (93%→98%) e `mega-lucario` (68%→75%). Troca de perfil sem ganho líquido real — mesmo padrão já visto várias vezes nesta sessão. Ambas as cadeias (`v2k` exploração próxima da v12, `explore` diversificação com init ruidoso) continuam rodando.
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
