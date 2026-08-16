@@ -438,6 +438,18 @@ Sintéticos (n=30, mesmo conjunto de sempre): `fighting_rush_v3` 93%→**100%**,
 
 **Lição para futuras rodadas**: `--games-per-archetype` abaixo de ~16 não é confiável o suficiente para guiar a busca sem uma etapa de validação a n=60 antes de qualquer promoção — o que já era a prática seguida, e foi exatamente o que evitou promover um retrocesso aqui. Fica registrado como reforço do porquê essa disciplina de validação existe.
 
+## Reta final (16/08) — prazo da trilha Simulation encerra às 23:59 UTC hoje
+
+Container reiniciado durante a sessão (gap de ~1.5 dias sem interação — sessão retomada só agora, 17:24 UTC). Nenhuma perda de dado: checkpoint e `vendor/cg/` intactos, `git status` limpo, `agent/policy_evolved.py` (v12) nunca tocado. Cota de submissão do dia (16/08) inteiramente disponível — nenhuma submissão feita ainda hoje.
+
+Com ~6h30 até o prazo, retomada a busca em duas frentes paralelas a partir da v12 (produção):
+1. **Exploração (`evolved_weights_v2_floor2.json`)**: continuação direta, sigma 0.4, 16 partidas/arquétipo — mesma configuração confiável que já vinha rodando.
+2. **Diversificação (`evolved_weights_v2_explore.json`, nova)**: pesos da v12 + ruído gaussiano grande (σ=1.5) como ponto de partida, depois CMA-ES com sigma 0.8/pop 16/12 partidas — tentativa de escapar de vez do ótimo local já bem mapeado, aceitando mais ruído em troca de cobrir uma região mais distante do espaço de pesos.
+
+Considerado e descartado por falta de tempo e histórico já negativo: tech de deck contra Kangaskhan (Fighting) — já tentado e revertido na iteração 1 desta sessão (`docs/09`, regride consistência de energia mais do que ajuda). `ogerpon_solo` é um espelho Grass-vs-Grass estruturalmente difícil (control puro: 4x Judge, 4x Lillie's Determination, 3x Boss's Orders), não um ajuste rápido de carta.
+
+Meta acordada com o usuário: iterar e submeter até 4 vezes hoje, sempre com validação n=60 antes de qualquer promoção — sem pular a disciplina mesmo com o prazo apertando (ver critério de desempate de `docs/10`: "submeter a melhor versão validada localmente antes de arriscar ficar sem tempo").
+
 ## Próximos passos identificados para as próximas iterações do loop
 
 1. **API nativa de busca** (`search_begin`/`search_step`/`search_end`/`search_release`, `vendor/cg/api.py`) — ainda não investigada tecnicamente nesta sessão apesar de citada repetidas vezes como o caminho estruturalmente correto para o problema do Kangaskhan (nocaute em 1 golpe, sem resposta possível por heurística reativa) e do Ogerpon (jogo termina rápido demais para heurística reagir). Próxima iteração: ler a assinatura real da API e avaliar viabilidade de um lookahead mínimo (mesmo que só 1-ply) dentro do orçamento de tempo por jogada (temos folga enorme: latência medida da heurística atual é ~1ms, contra um limite de tempo que nem sabemos se existe — ver `docs/06` item 5).
